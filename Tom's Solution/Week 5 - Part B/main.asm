@@ -15,13 +15,20 @@
 	.endif
 .endmacro
 
+defstring "no"
+defstring "word"
+defstring "is"
+defstring "longer"
+defstring "than"
+defstring "pneumonoultramicroscopicsilicovolcanoconiosis"
+defstring "right"
 
 .dseg
 
 .cseg
-.def stringLengthReturn = r16
-.def stringLengthTemp = r17
-.def longestLength = r17
+.def stringLengthReturn = r17
+.def stringLengthTemp = r16
+.def longestLength = r16
 .def returnAddressL = r18
 .def returnAddressH = r19
 .def nextAddressL = r20
@@ -32,23 +39,25 @@ start:
 	out SPH, r16
 	ldi r16, low(ramend)
 	out SPL, r16
-
-	defstring "no"
-	defstring "word"
-	defstring "is"
-	defstring "longer"
-	defstring "than"
-	defstring "pneumonoultramicroscopicsilicovolcanoconiosis"
-	defstring "right"
 	
 	ldi ZH, high(NEXT_STRING)
 	ldi ZL, low(NEXT_STRING)
-	push longestLength
+	; push longestLength
 	rcall findLongestLength
-	pop longestLength
+	; pop longestLength
 	rjmp halt
 
 findLongestLength:
+	push returnAddressH
+	push returnAddressL
+	rcall findLongestLengthStart
+	mov ZH, returnAddressH
+	mov ZL, returnAddressL
+	pop returnAddressL
+	pop returnAddressH
+	ret
+
+findLongestLengthStart:
 	push YH
 	push YL
 	push nextAddressH
@@ -70,7 +79,13 @@ findLongestLength:
 		rjmp findLongestLengthRecursiveCall
 
 	findLongestLengthRecursiveCall:
-		rcall findLongestLength
+		push ZH
+		push ZL
+		mov ZH, nextAddressH
+		mov ZL, nextAddressL
+		rcall findLongestLengthStart
+		pop ZL
+		pop ZH
 		rjmp findLongestLengthContinue
 
 	findLongestLengthContinue:
