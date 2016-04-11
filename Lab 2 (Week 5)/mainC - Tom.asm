@@ -82,31 +82,42 @@ findMinMaxStart:
 		movw Y, Z
 		movw X, Z
 		lpm largestIntH, Z+
-		lpm largestIntL, Z-
+		lpm largestIntL, Z
+		sbiw Z, 1
 		lpm smallestIntH, Z+
-		lpm smallestIntL, Z-
-		
+		lpm smallestIntL, Z
+		sbiw Z, 1
 
 		pop ZL
 		pop ZH
 		rjmp findMinMaxRecursiveCheck
 		
 	findMinMaxNewMin:
+		push ZH
+		push ZL
+
+		adiw Z, 2
+		lpm smallestIntH, Z+
+		lpm smallestIntL, Z
+		sbiw Z, 1
 		movw Y, Z
-		adiw Y, 2
-		lpm smallestIntH, Y
-		adiw Y, 1
-		lpm smallestIntL, Y
-		sbiw Y, 1
+
+		pop ZL
+		pop ZH
 		rjmp findMinMaxRecursiveCheck
 
 	findMinMaxNewMax:
+		push ZH
+		push ZL
+
+		adiw Z, 2
+		lpm largestIntH, Z+
+		lpm largestIntL, Z
+		sbiw Z, 1
 		movw X, Z
-		adiw X, 2
-		lpm largestIntH, X
-		adiw X, 1
-		lpm largestIntL, X
-		sbiw X, 1
+
+		pop ZL
+		pop ZH
 		rjmp findMinMaxRecursiveCheck
 
 	findMinMaxRecursiveCheck:
@@ -121,8 +132,9 @@ findMinMaxStart:
 	findMinMaxRecursive:
 		push ZH
 		push ZL
-		lpm tempCompare1, Z
-		lpm tempCompare2, Z + 1
+		lpm tempCompare1, Z+
+		lpm tempCompare2, Z
+		sbiw Z, 1
 		mov tempCompare1, ZH
 		mov tempCompare2, ZL
 		rcall findMinMaxStart
@@ -155,12 +167,12 @@ isYGreaterThanZPlusTwo:
 	push ZL
 	adiw Z, 2
 	lpm tempCompare1, Z
-	lpm tempCompare2, Z + 1
-	cp lowestIntH, tempCompare1
+	lpm tempCompare2, Z+
+	cp smallestIntH, tempCompare1
 	brlt isYGreaterThanZPlusTwoFalse
-	cp tempCompare1, lowestIntH
+	cp tempCompare1, smallestIntH
 	brlt isYGreaterThanZPlusTwoTrue
-	cp tempCompare2, lowestIntL
+	cp tempCompare2, smallestIntL
 	brlt isYGreaterThanZPlusTwoTrue
 	rjmp isYGreaterThanZPlusTwoFalse
 	
@@ -172,6 +184,13 @@ isYGreaterThanZPlusTwo:
 		sez
 		rjmp isYGreaterThanZPlusTwoEnd
 
+	isYGreaterThanZPlusTwoEnd:
+		pop ZL
+		pop ZH
+		pop tempCompare2
+		pop tempCompare1
+		ret
+
 isXLessThanZPlusTwo:
 	push tempCompare1
 	push tempCompare2
@@ -179,12 +198,12 @@ isXLessThanZPlusTwo:
 	push ZL
 	adiw Z, 2
 	lpm tempCompare1, Z
-	lpm tempCompare2, Z + 1
-	cp tempCompare1, highestIntH
+	lpm tempCompare2, Z+
+	cp tempCompare1, largestIntH
 	brlt isXLessThanZPlusTwoFalse
-	cp highestIntH, tempCompare1
+	cp largestIntH, tempCompare1
 	brlt isXLessThanZPlusTwoTrue
-	cp highestIntL, tempCompare2
+	cp largestIntL, tempCompare2
 	brlt isXLessThanZPlusTwoTrue
 	rjmp isXLessThanZPlusTwoFalse
 	
