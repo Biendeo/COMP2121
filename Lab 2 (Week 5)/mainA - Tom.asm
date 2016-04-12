@@ -4,6 +4,7 @@
 .cseg
 strOne: .db "abc" ; The string to be reversed.
 .equ terminatingChar = 0
+.equ arrLength = 4
 
 .dseg
 strTwo: .byte arrLength ; The string to reverse into.
@@ -16,8 +17,8 @@ start:
 	out SPH, r16
 	ldi r16, low(ramend)
 	out SPL, r16
-	ldi ZH, high(strOne)
-	ldi ZL, low(strOne)
+	ldi ZH, high(strOne << 1)
+	ldi ZL, low(strOne << 1)
 	ldi YH, high(strTwo)
 	ldi YL, low(strTwo)
 	ldi currentChar, terminatingChar

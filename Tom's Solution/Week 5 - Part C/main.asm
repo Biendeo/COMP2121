@@ -2,23 +2,21 @@
 .include "m2560def.inc"
 
 .cseg
+.db 0 ; Just to make sure the list doesn't start at null.
 
 .set NEXT_INT = 0x0000
 .macro defint ; int
 	.set T = PC ; save current position in program memory
 	.dw NEXT_INT << 1 ;write out address of next list node
 	.set NEXT_INT = T ; update NEXT_INT to point to this node
-	; .if strlen(@0) & 1 ; odd length + null byte
-	; 	.db @0, 0
-	; .else ; even length + null byte, add padding byte
-	; 	.db @0, 0, 0
-	; .endif
 	.dw @0
 .endmacro
 
-defint 2016
-defint 65000
-defint 1
+defint 0
+defint -50
+defint 40
+defint 32000
+defint -1
 
 
 .dseg
@@ -38,8 +36,8 @@ start:
 	ldi r16, low(ramend)
 	out SPL, r16
 	
-	ldi ZH, high(NEXT_INT)
-	ldi ZL, low(NEXT_INT)
+	ldi ZH, high(NEXT_INT << 1)
+	ldi ZL, low(NEXT_INT << 1)
 	ldi YH, 0
 	ldi YL, 0
 	ldi XH, 0
@@ -86,7 +84,6 @@ findMinMaxStart:
 		sbiw Z, 1
 		lpm smallestIntH, Z+
 		lpm smallestIntL, Z
-		sbiw Z, 1
 
 		pop ZL
 		pop ZH
@@ -114,6 +111,7 @@ findMinMaxStart:
 		lpm largestIntH, Z+
 		lpm largestIntL, Z
 		sbiw Z, 1
+
 		movw X, Z
 
 		pop ZL
@@ -121,8 +119,9 @@ findMinMaxStart:
 		rjmp findMinMaxRecursiveCheck
 
 	findMinMaxRecursiveCheck:
-		lpm tempCompare1, Z
-		lpm tempCompare2, Z + 1
+		lpm tempCompare1, Z+
+		lpm tempCompare2, Z
+		sbiw Z, 1
 		cpi tempCompare1, 0
 		brne findMinMaxRecursive
 		cpi tempCompare2, 0
@@ -134,9 +133,8 @@ findMinMaxStart:
 		push ZL
 		lpm tempCompare1, Z+
 		lpm tempCompare2, Z
-		sbiw Z, 1
-		mov tempCompare1, ZH
-		mov tempCompare2, ZL
+		mov ZL, tempCompare1
+		mov ZH, tempCompare2
 		rcall findMinMaxStart
 		pop ZL
 		pop ZH
@@ -166,8 +164,8 @@ isYGreaterThanZPlusTwo:
 	push ZH
 	push ZL
 	adiw Z, 2
-	lpm tempCompare1, Z
-	lpm tempCompare2, Z+
+	lpm tempCompare1, Z+
+	lpm tempCompare2, Z
 	cp smallestIntH, tempCompare1
 	brlt isYGreaterThanZPlusTwoFalse
 	cp tempCompare1, smallestIntH
@@ -197,8 +195,8 @@ isXLessThanZPlusTwo:
 	push ZH
 	push ZL
 	adiw Z, 2
-	lpm tempCompare1, Z
-	lpm tempCompare2, Z+
+	lpm tempCompare1, Z+
+	lpm tempCompare2, Z
 	cp tempCompare1, largestIntH
 	brlt isXLessThanZPlusTwoFalse
 	cp largestIntH, tempCompare1

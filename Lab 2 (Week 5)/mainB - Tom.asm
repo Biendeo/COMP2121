@@ -2,6 +2,7 @@
 .include "m2560def.inc"
 
 .cseg
+.db 0 ; Just to make sure the list doesn't start at null.
 
 .set NEXT_STRING = 0x0000
 .macro defstring ; str
@@ -15,13 +16,19 @@
 	.endif
 .endmacro
 
-defstring "no"
-defstring "word"
-defstring "is"
-defstring "longer"
-defstring "than"
-defstring "pneumonoultramicroscopicsilicovolcanoconiosis"
-defstring "right"
+;defstring "no"
+;defstring "word"
+;defstring "is"
+;defstring "longer"
+;defstring "than"
+;defstring "pneumonoultramicroscopicsilicovolcanoconiosis"
+;defstring "right"
+
+defstring "lists"
+defstring "are"
+defstring "great"
+defstring "but"
+defstring "hard"
 
 .dseg
 
@@ -40,45 +47,53 @@ start:
 	ldi r16, low(ramend)
 	out SPL, r16
 	
-	ldi ZH, high(NEXT_STRING)
-	ldi ZL, low(NEXT_STRING)
-	; push longestLength
+	ldi ZH, high(NEXT_STRING << 1)
+	ldi ZL, low(NEXT_STRING << 1)
 	rcall findLongestLength
-	; pop longestLength
 	rjmp halt
 
-findLongestLength:
+findLongestLength: ; The main call from outside the function. It preserves variables.
 	push returnAddressH
 	push returnAddressL
+	push nextAddressH
+	push nextAddressL
+	push longestLength
 	rcall findLongestLengthStart
 	mov ZH, returnAddressH
 	mov ZL, returnAddressL
+	pop longestLength
+	pop nextAddressL
+	pop nextAddressH
 	pop returnAddressL
 	pop returnAddressH
 	ret
 
-findLongestLengthStart:
+findLongestLengthStart: ; The start of the recursive loop.
 	push YH
 	push YL
 	push nextAddressH
 	push nextAddressL
 	push ZH
 	push ZL
+
 	; Get the address of the current word.
 	movw Y, Z
 	adiw Y, 2
-	lpm nextAddressL, Z
-	lpm nextAddressH, Z + 1
+	lpm nextAddressL, Z+
+	lpm nextAddressH, Z
+	sbiw Z, 1
+
+	; Check if the next address is null.
 	cpi nextAddressL, 0
 	breq findLongestLengthSecondNullCheck
-	rjmp findLongestLengthRecursiveCall
+	rjmp findLongestLengthRecursiveCall ; The recursive check is first, so the list is checked forward.
 
 	findLongestLengthSecondNullCheck:
 		cpi nextAddressH, 0
 		breq findLongestLengthContinue
 		rjmp findLongestLengthRecursiveCall
 
-	findLongestLengthRecursiveCall:
+	findLongestLengthRecursiveCall: ; The recursive call, preserving variables, and moving Z.
 		push ZH
 		push ZL
 		mov ZH, nextAddressH
@@ -88,17 +103,17 @@ findLongestLengthStart:
 		pop ZH
 		rjmp findLongestLengthContinue
 
-	findLongestLengthContinue:
+	findLongestLengthContinue: ; When the recursion is done, the string length is computed.
 		push stringLengthReturn
 		rcall getLengthOfStringInY
-		cp stringLengthReturn, longestLength
-		brlt findLongestLengthFinish
-		mov longestLength, stringLengthReturn
+		cp longestLength, stringLengthReturn ; If the length isn't longer, then the function ends.
+		brge findLongestLengthFinish
+		mov longestLength, stringLengthReturn ; Otherwise it's stored.
 		mov returnAddressL, YL
 		mov returnAddressH, YH
 		rjmp findLongestLengthFinish
 
-	findLongestLengthFinish:
+	findLongestLengthFinish: ; Preserving variables.
 		pop stringLengthReturn
 		pop ZL
 		pop ZH
