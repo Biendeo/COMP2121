@@ -14,11 +14,14 @@
 .def patterntemp = r22
 .def patternlengthtemp = r23
 .def flashcountertemp = r24
+.def activepatternstemp = r16
 
 .dseg
 pattern: .byte 1
 currentpattern: .byte 1
-counter: .byte 1
+patternindex: .byte 1
+activepatterns: .byte 1
+ispatterndisplayed: .byte 1
 flashcounter: .byte 1
 timercounter: .byte 2
 
@@ -40,8 +43,8 @@ reset:
 	out sph, yh
 
 	; write 0 to counter and pattern
-	ldi yh, high(counter<<1)
-	ldi yl, low(counter<<1)
+	ldi yh, high(patternindex<<1)
+	ldi yl, low(patternindex<<1)
 	clr temp1
 	st y, temp1
 	ldi yh, high(pattern<<1)
@@ -52,10 +55,12 @@ reset:
 	st y, temp1
 
 	; set prescaling value of the timer
-	ldi temp1, 0b00000000
-	out TCCR0A, temp1 
+	ldi temp1, 0
+	out TCCR0A, temp1
 	ldi temp1, 0b00000010
-	out TCCR0B, temp1 ; Prescaling value=8 
+	out TCCR0B, temp1
+	ldi temp1, 1<<TOIE0
+	sts TIMSK0, temp1
 
 	; set port b as input 
 	clr temp1
@@ -102,27 +107,17 @@ setOne:
 		brne delay1
 	
 	;getPatternLength:
-	lds patternlengthtemp, counter
+	lds patternlengthtemp, patternindex
 
-	addZeroToPattern:
+	addOneToPattern:
 		ldi temp1, 0b10000000
 		mov temp2, patternlengthtemp
-		rcall rightRotN			; temp1 = number to shift, temp2 = number of times to shift
-		lds patterntemp, pattern
+		rcall rightRotN			; temp1 = number to rotate, temp2 = number of times to rotate
+		lds patterntemp, currentpattern
 		or patterntemp, temp1
-		sts pattern, patterntemp
-		out PORTC, patterntemp
-	;incrementPatternLength:
-		inc patternlengthtemp
-		cpi patternlengthtemp, patternlength
-		brlt storePatternLength1
-		clr patternlengthtemp	; clear pattern length
-	;storeNewPattern:
-		sts currentpattern, patterntemp	; store pattern in currentpattern
-		;out PORTC, patterntemp
-	storePatternLength1:
-		sts counter, patternlengthtemp
-	
+
+	rcall storeNewPattern
+
 	pop patternlengthtemp
 	pop patterntemp
 	pop temp2
@@ -151,26 +146,17 @@ setZero:
 		brne delay1PB0
 	
 	getPatternLength:
-		lds patternlengthtemp, counter
+		lds patternlengthtemp, patternindex
 
-	updatePattern:
+	addZeroToPattern:
 		ldi temp1, 0b01111111
 		mov temp2, patternlengthtemp
 		rcall rightRotN			; temp1 = number to shift, temp2 = number of times to shift
-		lds patterntemp, pattern
+		lds patterntemp, currentpattern
 		and patterntemp, temp1
-		sts pattern, patterntemp
-		out PORTC, patterntemp
-	incPatternLength:
-		inc patternlengthtemp
-		cpi patternlengthtemp, patternlength
-		brlt storePatternLength
-		clr patternlengthtemp	; clear pattern length
-	storeNewPattern:
-		sts currentpattern, patterntemp	; store pattern in currentpattern
-	storePatternLength:
-		sts counter, patternlengthtemp
-	
+		
+	rcall storeNewPattern
+		
 	pop patternlengthtemp
 	pop patterntemp
 	pop temp2
@@ -179,31 +165,29 @@ setZero:
 	pop temp1
 	reti
 
-enableTimer0:
-	push yh
-	push yl
-	push temp1
-	ldi yh, high(TIMSK0<<1) ; preserve mask value
-	ldi yl, low(TIMSK0<<1)
-	ld temp1, y
-	ori temp1,  1<<TOIE0
-	sts TIMSK0, temp1 ; enable timer interrupt from timer0
-	pop temp1
-	pop yl
-	pop yh
-	ret
-disableTimer0:
-	push yh
-	push yl
-	push temp1
-	ldi yh, high(TIMSK0<<1) ; preserve mask value
-	ldi yl, low(TIMSK0<<1)
-	ld temp1, y
-	andi temp1, 0b11111110<<TOIE0
-	sts TIMSK0, temp1 ; disable timer interrupt from timer0
-	pop temp1
-	pop yl
-	pop yh
+; assume patterntemp, patternlengthtemp has been set
+storeNewPattern:
+	sts currentpattern, patterntemp
+	;out PORTC, patterntemp ; debug - display the pattern
+	inc patternlengthtemp
+	cpi patternlengthtemp, patternlength
+	brlt storePatternLength
+	; reached a full new pattern
+	; if active patterns == 0, set pattern to currentpattern, clear currentpattern
+	; else leave as currentpattern
+	; inc active patterns
+	clr patternlengthtemp
+	lds activepatternstemp, activepatterns
+	cpi activepatternstemp, 0
+	brne incrementActivePatterns
+	sts pattern, patterntemp
+	ldi temp1, 0
+	sts currentpattern, temp1
+	incrementActivePatterns:
+		inc activepatternstemp
+		sts activepatterns, activepatternstemp
+	storePatternLength:
+		sts patternindex, patternlengthtemp
 	ret
 
 timer0Interrupt:
@@ -214,63 +198,88 @@ timer0Interrupt:
 	push yl
 	push temp2
 	push patterntemp
-
+	; return if no active patterns are ready to be displayed
+	lds temp1, activepatterns
+	cpi temp1, 0
+	breq returntimer0Interrupt
+	; increment the milisecond timer
 	lds yl, timercounter
 	lds yh, timercounter+1
 	adiw yh:yl, 1
+	; return if a second has not passed
 	cpi yl, low(timerinterval)
 	ldi temp1, high(timerinterval)
 	cpc yh, temp1
 	brlt storeTimer
-	clr temp1
+	; a second has passed
 	resetTimerCounter:
+		clr temp1
 		sts timercounter, temp1
 		sts timercounter+1, temp1
-	incrementFlashCounter:
-		lds yl, flashcounter
-		adiw yl, 1
-		cpi yl, maxflashes			; flashed this pattern 3 times
-		; ????
-		sts flashcounter, yl
+	; toggle the pattern
+
+	;lds temp1, pattern ; debug
+	;neg temp1
+	;sts pattern, temp1
+	;out portc, temp1
+	;jmp returntimer0Interrupt
+
+
+
+	; if numflashes == 0: turn on display
+	lds temp1, ispatterndisplayed
+	cpi temp1, 1
+	breq undisplayPattern
+	displayPattern:
+		lds patterntemp, pattern
+		out PORTC, patterntemp
+		ldi temp1, 1
+		sts ispatterndisplayed, temp1
+		rjmp incrementFlashesCounter
+	undisplayPattern:
+		lds patterntemp, 0b00000000
+		out PORTC, patterntemp
+		ldi temp1, 0
+		sts ispatterndisplayed, temp1
+		
+	incrementFlashesCounter:
+		lds flashcountertemp, flashcounter
+		inc flashcountertemp
+		cpi flashcountertemp, maxflashes
+		brlt storeFlashesCounter
+		; if max flashes reached:
+		; set flashes to zero
+		; decrement the activepatterns
+		; load the next pattern, if needed
+		clr flashcountertemp
+		lds temp1, activepatterns
+		subi temp1, 1
+		sts activepatterns, temp1
+		cpi temp1, 0
+		breq storeFlashesCounter
+		; load next pattern
+		lds patterntemp, currentpattern
+		sts pattern, patterntemp
+		clr temp1
+		sts currentpattern, temp1
+		
+	storeFlashesCounter:
+		sts flashcounter, flashcountertemp
 
 	storeTimer:
 		sts timercounter, yl
-		sts timercounter, yh
+		sts timercounter+1, yh
 
-	pop patterntemp
-	pop temp2
-	pop yl
-	pop yh
-	pop temp1
-	out SREG, temp1
-	pop temp1
-	reti
+	returntimer0Interrupt:
+		pop patterntemp
+		pop temp2
+		pop yl
+		pop yh
+		pop temp1
+		out SREG, temp1
+		pop temp1
+		reti
 	
-
-turnOnPattern:
-	push yh
-	push yl
-	push patterntemp
-	ldi yh, high(pattern<<1)
-	ldi yl, high(pattern<<1)
-	ld patterntemp, y
-	out PORTC, patterntemp
-	pop patterntemp
-	pop yl
-	pop yh
-
-turnOffPattern:
-	push yh
-	push yl
-	push patterntemp
-	ldi yh, high(pattern<<1)
-	ldi yl, high(pattern<<1)
-	ldi patterntemp, 0
-	out PORTC, patterntemp
-	pop patterntemp
-	pop yl
-	pop yh
-
 ; Left rotates a number N times
 ; params: number to shift, number of times to rotate: r20, r21
 ; return r20
