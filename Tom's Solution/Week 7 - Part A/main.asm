@@ -5,8 +5,10 @@
 .equ lightPattern = 0xE5
 
 start:
-	ldi patternRegister, lightPattern
+	ser patternRegister
 	out DDRC, patternRegister
+	
+	ldi patternRegister, lightPattern
 	out PORTC, patternRegister
     rjmp halt
 
