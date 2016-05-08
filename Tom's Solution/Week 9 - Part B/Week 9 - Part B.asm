@@ -61,7 +61,7 @@ reset:
 	do_lcd_data '2'
 	do_lcd_data '1'
 
-	do_lcd_command 160
+	do_lcd_command 192
 
 	do_lcd_data 'L'
 	do_lcd_data 'A'
