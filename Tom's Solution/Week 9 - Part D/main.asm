@@ -95,3 +95,42 @@ DIVISION_FUNC:
 		rjmp DIVISION_LOOP
 	DIVISION_EXIT:
 		ret
+
+PRINT_DISPLAY:
+	lds temp1, CURRENT_VALUE
+	ldi temp2, 100
+	rcall DIVISION_FUNC
+	cpi row, 0
+	breq PRINT_DISPLAY_2
+	subi row, -'0'
+	do_lcd_data row
+
+	PRINT_DISPLAY_2:
+		lds temp1, CURRENT_VALUE
+		cpi temp1, 100
+		brlt PRINT_DISPLAY_2_LOOP_EXIT
+		PRINT_DISPLAY_2_LOOP:
+			subi temp1, 100
+			cpi temp1, 100
+			brge PRINT_DISPLAY_2_LOOP
+		PRINT_DISPLAY_2_LOOPEXIT:
+			ldi temp2, 10
+			rcall DIVISION_FUNC
+			cpi row, 0
+			breq PRINT_DISPLAY_3
+			subi row, -'0'
+			do_lcd_data row
+
+	PRINT_DISPLAY_3:
+		lds temp1, CURRENT_VALUE
+		cpi temp1, 10
+		brlt PRINT_DISPLAY_2_LOOP_EXIT
+		PRINT_DISPLAY_2_LOOP:
+			subi temp1, 10
+			cpi temp1, 10
+			brge PRINT_DISPLAY_2_LOOP
+		PRINT_DISPLAY_2_LOOPEXIT:
+			ldi temp2, 1
+			rcall DIVISION_FUNC
+			subi row, -'0'
+			do_lcd_data row
