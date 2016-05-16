@@ -38,7 +38,37 @@ Reset:
 
 ; The start of the program after all setup has been done.
 Start:
-	rjmp Halt
+	rcall TitleScreen
+	rjmp TitleScreen
+
+; Displays the title screen of the game and waits for input.
+TitleScreen:
+	do_lcd_data '2'
+	do_lcd_data '1'
+	do_lcd_data '2'
+	do_lcd_data '1'
+	do_lcd_data ' '
+	do_lcd_data '1'
+	do_lcd_data '6'
+	do_lcd_data 's'
+	do_lcd_data '1'
+
+	do_lcd_command 0b11000000
+
+	do_lcd_data 'S'
+	do_lcd_data 'a'
+	do_lcd_data 'f'
+	do_lcd_data 'e'
+	do_lcd_data ' '
+	do_lcd_data 'C'
+	do_lcd_data 'r'
+	do_lcd_data 'a'
+	do_lcd_data 'c'
+	do_lcd_data 'k'
+	do_lcd_data 'e'
+	do_lcd_data 'r'
+
+	ret
 
 ; Stops the program.
 ; Our program shouldn't really be in an ended state.

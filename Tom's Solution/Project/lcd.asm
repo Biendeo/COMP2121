@@ -6,13 +6,13 @@
 
 .macro do_lcd_command
 	ldi r16, @0
-	rcall lcd_command
-	rcall lcd_wait
+	call lcd_command
+	call lcd_wait
 .endmacro
 .macro do_lcd_data
 	ldi r16, @0
-	rcall lcd_data
-	rcall lcd_wait
+	call lcd_data
+	call lcd_wait
 .endmacro
 
 .equ LCD_RS = 7
