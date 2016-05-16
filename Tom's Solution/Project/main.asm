@@ -39,6 +39,13 @@ Reset:
 ; The start of the program after all setup has been done.
 Start:
 	rcall TitleScreen
+	
+	; This is just to test that GetKeyPadInput works by outputting the result to
+	; the LEDs. Ideally this function waits until we press a key. The only time
+	; we ever need to interrupt this input is on the title screen when picking
+	; a difficulty (which we can make a "bail" function for).
+	rcall GetKeyPadInput
+	out LED_OUT, r16
 	rjmp Halt
 
 ; Displays the title screen of the game and waits for input.
