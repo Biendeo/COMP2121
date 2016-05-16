@@ -9,7 +9,7 @@
 
 ; The interrupt when timer0 overflows.
 Timer0Interrupt:
-	rcall CreateRandomValue
+	call CreateRandomValue
 	reti
 
 .def temp1 = r16
@@ -22,7 +22,6 @@ SetupTimer0:
 	out TCCR0B, temp1
 	ldi temp1, 1 << TOIE0
 	sts TIMSK0, temp1
-	sei
 	ret
 
 .undef temp1

@@ -5,9 +5,12 @@
 	jmp Reset
 
 .include "m2560def.inc"
+
+.org 0x2000
 .include "keypad.asm"
 .include "lcd.asm"
 .include "led.asm"
+.include "motor.asm"
 .include "potentiometer.asm"
 .include "random.asm"
 .include "speaker.asm"
@@ -21,8 +24,15 @@ Reset:
 	ldi r16, low(ramend)
 	out SPL, r16
 
-	rcall SetupTimer0
-	rcall SetupLCD
+	call SetupTimer0
+	call SetupLCD ; This somehow takes 750ms to do. Maybe investigate.
+	call SetupLED
+	call SetupKeyPad
+	call SetupMotor
+	call SetupPotent
+	call SetupSpeaker
+
+	sei
 
 	rjmp Start
 

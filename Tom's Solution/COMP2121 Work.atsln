@@ -37,6 +37,12 @@ Project("{18226A42-8477-4023-8AD2-40C49DA407C9}") = "Week 9 - Part D", "Week 9 -
 EndProject
 Project("{18226A42-8477-4023-8AD2-40C49DA407C9}") = "Project", "Project\Project.asmproj", "{35101513-A1EA-4C17-BED3-8F00D62C5103}"
 EndProject
+Project("{18226A42-8477-4023-8AD2-40C49DA407C9}") = "Week 11 - Part A", "Week 11 - Part A\Week 11 - Part A.asmproj", "{4C8999D3-A8CA-41A4-9CD1-F6A186A4AAA5}"
+EndProject
+Project("{18226A42-8477-4023-8AD2-40C49DA407C9}") = "Week 11 - Part B", "Week 11 - Part B\Week 11 - Part B.asmproj", "{50361E12-0010-41C3-9A23-178C9C895B55}"
+EndProject
+Project("{18226A42-8477-4023-8AD2-40C49DA407C9}") = "Week 11 - Part C", "Week 11 - Part C\Week 11 - Part C.asmproj", "{414883F7-4AA0-4568-84F7-45F3633AA962}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|AVR = Debug|AVR
@@ -111,6 +117,18 @@ Global
 		{35101513-A1EA-4C17-BED3-8F00D62C5103}.Debug|AVR.Build.0 = Debug|AVR
 		{35101513-A1EA-4C17-BED3-8F00D62C5103}.Release|AVR.ActiveCfg = Release|AVR
 		{35101513-A1EA-4C17-BED3-8F00D62C5103}.Release|AVR.Build.0 = Release|AVR
+		{4C8999D3-A8CA-41A4-9CD1-F6A186A4AAA5}.Debug|AVR.ActiveCfg = Debug|AVR
+		{4C8999D3-A8CA-41A4-9CD1-F6A186A4AAA5}.Debug|AVR.Build.0 = Debug|AVR
+		{4C8999D3-A8CA-41A4-9CD1-F6A186A4AAA5}.Release|AVR.ActiveCfg = Release|AVR
+		{4C8999D3-A8CA-41A4-9CD1-F6A186A4AAA5}.Release|AVR.Build.0 = Release|AVR
+		{50361E12-0010-41C3-9A23-178C9C895B55}.Debug|AVR.ActiveCfg = Debug|AVR
+		{50361E12-0010-41C3-9A23-178C9C895B55}.Debug|AVR.Build.0 = Debug|AVR
+		{50361E12-0010-41C3-9A23-178C9C895B55}.Release|AVR.ActiveCfg = Release|AVR
+		{50361E12-0010-41C3-9A23-178C9C895B55}.Release|AVR.Build.0 = Release|AVR
+		{414883F7-4AA0-4568-84F7-45F3633AA962}.Debug|AVR.ActiveCfg = Debug|AVR
+		{414883F7-4AA0-4568-84F7-45F3633AA962}.Debug|AVR.Build.0 = Debug|AVR
+		{414883F7-4AA0-4568-84F7-45F3633AA962}.Release|AVR.ActiveCfg = Release|AVR
+		{414883F7-4AA0-4568-84F7-45F3633AA962}.Release|AVR.Build.0 = Release|AVR
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
