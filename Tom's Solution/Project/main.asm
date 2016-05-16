@@ -39,7 +39,7 @@ Reset:
 ; The start of the program after all setup has been done.
 Start:
 	rcall TitleScreen
-	rjmp TitleScreen
+	rjmp Halt
 
 ; Displays the title screen of the game and waits for input.
 TitleScreen:
