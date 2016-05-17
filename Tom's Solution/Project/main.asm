@@ -3,10 +3,15 @@
 
 .org 0x0000
 	jmp Reset
+.org INT0addr
+	jmp PushRightButton
+.org INT1addr
+	jmp PushLeftButton
+.org OVF0addr
+	jmp Timer0Interrupt
 
 .include "m2560def.inc"
-
-.org 0x2000
+.include "button.asm"
 .include "keypad.asm"
 .include "lcd.asm"
 .include "led.asm"
@@ -44,7 +49,7 @@ Start:
 	; the LEDs. Ideally this function waits until we press a key. The only time
 	; we ever need to interrupt this input is on the title screen when picking
 	; a difficulty (which we can make a "bail" function for).
-	rcall GetKeyPadInput
+	call GetKeyPadInput
 	out LED_OUT, r16
 	rjmp Halt
 

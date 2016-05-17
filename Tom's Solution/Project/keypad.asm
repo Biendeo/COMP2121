@@ -56,12 +56,12 @@ GetKeyPadInput:
 	GetKeyPadInput_ColLoop:
 		cpi col, 4
 		breq GetKeyPadInput_Start
-		out KEYPAD_OUT, colMask
+		sts KEYPAD_OUT, colMask
 		ldi temp1, 0xFF
 	GetKeyPadInput_Delay:
 		dec temp1
 		brne GetKeyPadInput_Delay
-		in temp1, KEYPAD_IN
+		lds temp1, KEYPAD_IN
 		andi temp1, ROW_MASK
 		cpi temp1, 0x0F
 		breq GetKeyPadInput_NextCol

@@ -4,9 +4,6 @@
 .ifndef TIMER_ASM
 .equ TIMER_ASM = 1
 
-.org OVF0addr
-	rjmp Timer0Interrupt
-
 ; The interrupt when timer0 overflows.
 Timer0Interrupt:
 	call CreateRandomValue
