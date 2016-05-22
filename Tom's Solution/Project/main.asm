@@ -10,6 +10,32 @@
 .org OVF0addr
 	jmp Timer0Interrupt
 
+.dseg
+currentMode: .byte 1
+
+.equ MODE_TITLESCREEN = 0
+.equ MODE_TITLEWAIT = 1
+.equ MODE_RESETPOTENT = 2
+.equ MODE_FINDPOTENT = 3
+.equ MODE_FINDCODE = 4
+.equ MODE_ENTERCODE = 5
+.equ MODE_GAMEWIN = 6
+.equ MODE_GAMELOSE = 7
+
+difficultyLevel: .byte 1
+
+.equ DIFFICULTY_EASY = 0
+.equ DIFFICULTY_MEDIUM = 1
+.equ DIFFICULTY_HARD = 2
+.equ DIFFICULTY_REALLYHARD = 3
+
+currentRandomPotent: .byte 1 ; Or should this be two bytes?
+currentRandomCode: .byte 1
+randomCode1: .byte 1
+randomCode2: .byte 1
+randomCode3: .byte 1
+
+.cseg
 .include "m2560def.inc"
 .include "button.asm"
 .include "keypad.asm"
@@ -19,6 +45,7 @@
 .include "potentiometer.asm"
 .include "random.asm"
 .include "speaker.asm"
+.include "strobe.asm"
 .include "timer.asm"
 
 ; The main process of resetting the program.
@@ -32,14 +59,32 @@ Reset:
 	call SetupTimer0
 	call SetupLCD ; This somehow takes 750ms to do. Maybe investigate.
 	call SetupLED
+	call SetupStrobe
 	call SetupKeyPad
 	call SetupMotor
 	call SetupPotent
 	call SetupSpeaker
+	call SetupMainVariables
 
 	sei
 
 	rjmp Start
+
+; Initialises the main variables.
+SetupMainVariables:
+	ldi r16, MODE_TITLESCREEN
+	ldi ZL, low(currentMode)
+	ldi ZH, high(currentMode)
+	st Z, r16
+
+	ldi r16, DIFFICULTY_EASY
+	ldi ZL, low(difficultyLevel)
+	ldi ZH, high(difficultyLevel)
+	st Z, r16
+
+	; currentRandomPotent, currentRandomCode and the randomCode variables are set
+	; when a button is pushed so that randomness can be decided.
+	ret
 
 ; The start of the program after all setup has been done.
 Start:

@@ -8,6 +8,24 @@
 .equ KEYPAD_DDR = DDRL
 .equ KEYPAD_IN = PINL
 
+; TODO: Figure these out.
+.equ KEYPAD_1 = 0x00
+.equ KEYPAD_2 = 0x00
+.equ KEYPAD_3 = 0x00
+.equ KEYPAD_A = 0x00
+.equ KEYPAD_4 = 0x00
+.equ KEYPAD_5 = 0x00
+.equ KEYPAD_6 = 0x00
+.equ KEYPAD_B = 0x00
+.equ KEYPAD_7 = 0x00
+.equ KEYPAD_8 = 0x00
+.equ KEYPAD_9 = 0x00
+.equ KEYPAD_C = 0x00
+.equ KEYPAD_HASH = 0x00
+.equ KEYPAD_0 = 0x00
+.equ KEYPAD_STAR = 0x00
+.equ KEYPAD_D = 0x00
+
 ; TODO: Rename these to much more useful things.
 .equ PORTA_DIR = 0xF0
 .equ INIT_COL_MASK = 0xEF

@@ -10,10 +10,10 @@ SetupButtons:
 
 PushLeftButton:
 	
-	ret
+	reti
 
 PushRightButton:
 
-	ret
+	reti
 
 .endif
