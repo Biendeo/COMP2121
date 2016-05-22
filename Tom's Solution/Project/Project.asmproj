@@ -105,6 +105,9 @@
     <Compile Include="speaker.asm">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="strobe.asm">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="timer.asm">
       <SubType>Code</SubType>
     </Compile>
