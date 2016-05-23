@@ -1,37 +1,19 @@
 ; main.asm
 ; The main entry point of the program.
 
-.macro do_lcd_command
-	ldi r16, @0
-	call lcd_command
-	call lcd_wait
-.endmacro
-.macro do_lcd_data
-	ldi r16, @0
-	call lcd_data
-	call lcd_wait
-.endmacro
-
-.equ LCD_RS = 7
-.equ LCD_E = 6
-.equ LCD_RW = 5
-.equ LCD_BE = 4
-
-.macro lcd_set
-	sbi PORTA, @0
-.endmacro
-.macro lcd_clr
-	cbi PORTA, @0
-.endmacro
-
 .org 0x0000
 	jmp Reset
-.org OVF0addr
-	rjmp Timer0Interrupt
 
 .include "m2560def.inc"
-.org 0x000200
+
+.org 0x2000
+.include "keypad.asm"
 .include "lcd.asm"
+.include "led.asm"
+.include "motor.asm"
+.include "potentiometer.asm"
+.include "random.asm"
+.include "speaker.asm"
 .include "timer.asm"
 
 ; The main process of resetting the program.
@@ -42,7 +24,13 @@ Reset:
 	ldi r16, low(ramend)
 	out SPL, r16
 
+	call SetupTimer0
 	call SetupLCD ; This somehow takes 750ms to do. Maybe investigate.
+	call SetupLED
+	call SetupKeyPad
+	call SetupMotor
+	call SetupPotent
+	call SetupSpeaker
 
 	sei
 
