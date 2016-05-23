@@ -80,6 +80,9 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="button.asm">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="keypad.asm">
       <SubType>Code</SubType>
     </Compile>

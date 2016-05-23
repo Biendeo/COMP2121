@@ -15,7 +15,7 @@
     <Name>Week 9 - Part B</Name>
     <RootNamespace>Week 9 - Part B</RootNamespace>
     <ToolchainFlavour>Native</ToolchainFlavour>
-    <EntryFile>$(MSBuildProjectDirectory)\main.asm</EntryFile>
+    <EntryFile>$(MSBuildProjectDirectory)\Week 9 - Part B.asm</EntryFile>
     <KeepTimersRunning>true</KeepTimersRunning>
     <OverrideVtor>false</OverrideVtor>
     <CacheFlash>true</CacheFlash>
@@ -27,6 +27,7 @@
     <BootSegment>2</BootSegment>
     <eraseonlaunchrule>0</eraseonlaunchrule>
     <AsfFrameworkConfig>
+<<<<<<< HEAD
       <framework-data>
   <options />
   <configurations />
@@ -37,6 +38,18 @@
     <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.18.1" />
   </dependencies>
 </framework-data>
+=======
+      <framework-data xmlns="">
+        <options />
+        <configurations />
+        <files />
+        <documentation help="" />
+        <offline-documentation help="" />
+        <dependencies>
+          <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.30.1" />
+        </dependencies>
+      </framework-data>
+>>>>>>> refs/remotes/origin/master
     </AsfFrameworkConfig>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
@@ -66,7 +79,7 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="main.asm">
+    <Compile Include="Week 9 - Part B.asm">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

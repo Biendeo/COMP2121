@@ -18,7 +18,6 @@
 	out SPH, yh
 .endmacro
 
-.def counter = r20
 .def temp1 = r24
 .def temp2 = r25
 .equ qtrSecond = 1953
@@ -44,7 +43,7 @@ RESET:
 	ldi temp1, low(RAMEND)
 	out spl, temp1
 
-	; reset data memory (probs not necessary)
+	; reset data memory
 	clr temp1
 	sts cRot, temp1
 	sts cRot+1,temp1
@@ -110,8 +109,6 @@ TIMER0ovf:
 	lds temp2, cTimer+1
 
 	adiw temp1, 1
-	sts cTimer, temp1
-	sts cTimer+1, temp2
 	std Y+1, temp1
 	std Y+2, temp2
 	cpi temp1, low(qtrSecond)

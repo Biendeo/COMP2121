@@ -15,7 +15,7 @@
     <Name>Week 7 - Part A</Name>
     <RootNamespace>Week 7 - Part A</RootNamespace>
     <ToolchainFlavour>Native</ToolchainFlavour>
-    <EntryFile>$(MSBuildProjectDirectory)\main.asm</EntryFile>
+    <EntryFile>$(MSBuildProjectDirectory)\Week 7 - Part A.asm</EntryFile>
     <KeepTimersRunning>true</KeepTimersRunning>
     <OverrideVtor>false</OverrideVtor>
     <CacheFlash>true</CacheFlash>
@@ -80,7 +80,7 @@
     </ToolchainSettings>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="main.asm">
+    <Compile Include="Week 7 - Part A.asm">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
