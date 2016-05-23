@@ -5,6 +5,29 @@
 .equ LCD_ASM = 1
 
 
+.macro do_lcd_command
+	ldi r16, @0
+	call lcd_command
+	call lcd_wait
+.endmacro
+.macro do_lcd_data
+	ldi r16, @0
+	call lcd_data
+	call lcd_wait
+.endmacro
+
+.equ LCD_RS = 7
+.equ LCD_E = 6
+.equ LCD_RW = 5
+.equ LCD_BE = 4
+
+.macro lcd_set
+	sbi PORTA, @0
+.endmacro
+.macro lcd_clr
+	cbi PORTA, @0
+.endmacro
+
 
 .equ LCD_FIRSTLINE = 0b00000000 ; FIGURE THIS ONE OUT.
 .equ LCD_SECONDLINE = 0b11000000

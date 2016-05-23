@@ -5,9 +5,9 @@
 .equ TIMER_ASM = 1
 
 ; The interrupt when timer0 overflows.
-;Timer0Interrupt:
-;	call CreateRandomValue
-;	reti
+Timer0Interrupt:
+	call CreateRandomValue
+	reti
 
 .def temp1 = r16
 
