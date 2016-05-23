@@ -34,11 +34,8 @@
   <documentation help="" />
   <offline-documentation help="" />
   <dependencies>
-<<<<<<< HEAD
     <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.18.1" />
-=======
-    <content-extension eid="atmel.asf" uuidref="Atmel.ASF" version="3.21.0" />
->>>>>>> refs/remotes/origin/master
+
   </dependencies>
 </framework-data>
     </AsfFrameworkConfig>
