@@ -8,6 +8,24 @@
 .equ KEYPAD_DDR = DDRL
 .equ KEYPAD_IN = PINL
 
+; TODO: Figure these out.
+.equ KEYPAD_1 = 0x00
+.equ KEYPAD_2 = 0x00
+.equ KEYPAD_3 = 0x00
+.equ KEYPAD_A = 0x00
+.equ KEYPAD_4 = 0x00
+.equ KEYPAD_5 = 0x00
+.equ KEYPAD_6 = 0x00
+.equ KEYPAD_B = 0x00
+.equ KEYPAD_7 = 0x00
+.equ KEYPAD_8 = 0x00
+.equ KEYPAD_9 = 0x00
+.equ KEYPAD_C = 0x00
+.equ KEYPAD_HASH = 0x00
+.equ KEYPAD_0 = 0x00
+.equ KEYPAD_STAR = 0x00
+.equ KEYPAD_D = 0x00
+
 ; TODO: Rename these to much more useful things.
 .equ PORTA_DIR = 0xF0
 .equ INIT_COL_MASK = 0xEF
@@ -56,12 +74,12 @@ GetKeyPadInput:
 	GetKeyPadInput_ColLoop:
 		cpi col, 4
 		breq GetKeyPadInput_Start
-		out KEYPAD_OUT, colMask
+		sts KEYPAD_OUT, colMask
 		ldi temp1, 0xFF
 	GetKeyPadInput_Delay:
 		dec temp1
 		brne GetKeyPadInput_Delay
-		in temp1, KEYPAD_IN
+		lds temp1, KEYPAD_IN
 		andi temp1, ROW_MASK
 		cpi temp1, 0x0F
 		breq GetKeyPadInput_NextCol

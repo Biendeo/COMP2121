@@ -6,6 +6,10 @@
 
 
 
+.equ LCD_FIRSTLINE = 0b00000000 ; FIGURE THIS ONE OUT.
+.equ LCD_SECONDLINE = 0b11000000
+.equ LCD_CLEARDISPLAY = 0b00000001
+
 ; Sets up the LCD with the right stuff (from the lecture slides).
 SetupLCD:
 	ser r16
