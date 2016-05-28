@@ -9,8 +9,8 @@ currentRandomValue: .byte 1 ; The random number generated. Use this to get a ran
 currentRandomIndex: .byte 1 ; The value used to create a random number. Don't use this, it just counts up.
 
 .cseg
-.def temp1 = r16
-.def temp2 = r17
+.def temp1 = r24
+.def temp2 = r25
 
 ; Sets both currentRandomValue and currentRandomIndex to 0.
 InitialiseRandomness:

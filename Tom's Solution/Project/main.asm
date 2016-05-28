@@ -1,14 +1,31 @@
 ; main.asm
 ; The main entry point of the program.
 
+.macro incStack
+	in yl, SPL
+	in yh, SPH
+	sbiw yl, @0
+	out SPL, yl
+	out SPH, yh
+.endmacro
+.macro decStack
+	in yl, SPL
+	in yh, SPH
+	adiw yl, @0
+	out SPL, yl
+	out SPH, yh
+.endmacro
+
 .org 0x0000
 	jmp Reset
 .org INT0addr
 	jmp PushRightButton
 .org INT1addr
 	jmp PushLeftButton
-.org OVF0addr
-	jmp Timer0Interrupt
+.org OVF0addr ; DEBOUNCING
+	jmp Timer0Interrupt 
+.org ADCCaddr
+	jmp ADCCint
 
 .dseg
 currentMode: .byte 1
@@ -37,6 +54,17 @@ randomCode1: .byte 1
 randomCode2: .byte 1
 randomCode3: .byte 1
 
+titleWaitCountdown: .byte 1
+
+; timer 0
+timer0Counter: .byte 2
+
+; DEBOUNCING
+PB0dbFlag: .byte 1
+PB0dbTimer: .byte 2
+PB1dbFlag: .byte 1
+PB1dbTimer: .byte 2
+
 .cseg
 .include "m2560def.inc"
 .include "button.asm"
@@ -50,6 +78,9 @@ randomCode3: .byte 1
 .include "strobe.asm"
 .include "timer.asm"
 
+.def temp1 = r24
+.def temp2 = r25
+
 ; The main process of resetting the program.
 Reset:
 	; The stack is set up first so rcalls can be made from here on out.
@@ -62,6 +93,7 @@ Reset:
 	call SetupLCD ; This somehow takes 750ms to do. Maybe investigate.
 	call SetupLED
 	call SetupStrobe
+	call SetupButtons
 	call SetupKeyPad
 	call SetupMotor
 	call SetupPotent
@@ -95,8 +127,9 @@ Start:
 	; the LEDs. Ideally this function waits until we press a key. The only time
 	; we ever need to interrupt this input is on the title screen when picking
 	; a difficulty (which we can make a "bail" function for).
-	call GetKeyPadInput
-	out LED_OUT, r16
+	;call GetKeyPadInput
+	;ser r16
+	;out PORTC, r16
 	rjmp Halt
 
 ; Displays the title screen of the game.
@@ -126,6 +159,40 @@ TitleScreen:
 	do_lcd_data 'e'
 	do_lcd_data 'r'
 
+	ret
+
+; Starts the 3 second countdown to start the game
+StartTitleWait:
+	push r16
+	ldi r16, MODE_TITLEWAIT
+	sts currentMode, r16
+
+	ldi r16, 3
+	sts titleWaitCountdown, r16
+	do_lcd_command LCD_CLEARDISPLAY
+	do_lcd_data '2'
+	do_lcd_data '1'
+	do_lcd_data '2'
+	do_lcd_data '1'
+	do_lcd_data ' '
+	do_lcd_data '1'
+	do_lcd_data '6'
+	do_lcd_data 's'
+	do_lcd_data '1'
+	do_lcd_command LCD_SECONDLINE
+	do_lcd_data 'S'
+	do_lcd_data 't'
+	do_lcd_data 'a'
+	do_lcd_data 'r'
+	do_lcd_data 't'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'g'
+	do_lcd_data ' '
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+
+	pop r16
 	ret
 
 ; Starts the game section involving finding the right potential setting.
@@ -176,7 +243,6 @@ StartFindCode:
 		; TODO: Use a timer and poll whether the key is down in a loop.
 		; TODO: When the timer runs out and the key always was down, break.
 		; TODO: Otherwise, keep looping.
-
 	ret
 
 ; Creates a new random potential and stores it.
@@ -258,3 +324,74 @@ Modulus:
 ; This only ever needs to be called on screens waiting for a push button.
 Halt:
 	rjmp Halt
+
+displayIAsASCII:
+	push yh
+	push yl
+	push temp1
+	push temp2 
+	incStack 4
+	std Y+1, temp1 ; load starting number
+	clr temp2
+	std Y+2, temp2 ; num Hundreds
+	std Y+3, temp2 ; num tens
+	std Y+4, temp2 ; num ones
+
+
+	divOneHundred:
+		cpi temp1, 100
+		brlt pushHundreds
+		subi temp1, 100
+		inc temp2
+		rjmp divOneHundred
+	
+	pushHundreds:
+		std Y+2, temp2
+		clr temp2
+
+	divTen:
+		cpi temp1, 10
+		brlt pushTens
+		subi temp1, 10
+		inc temp2
+		rjmp divTen
+
+	pushTens:
+		std Y+3, temp2
+		clr temp2
+
+	divOne:
+		cpi temp1, 1
+		brlt pushOnes
+		subi temp1, 1
+		inc temp2
+		rjmp divOne
+
+	pushOnes:
+		std Y+4, temp2
+	
+	ldd temp2, y+2
+	subi temp2, -'0'
+	do_lcd_data_reg temp2
+	ldd temp2, y+3
+	subi temp2, -'0'
+	do_lcd_data_reg temp2
+	ldd temp2, y+4
+	subi temp2, -'0'
+	do_lcd_data_reg temp2
+
+
+	return_displayIAsASCII:
+		decStack 4
+		pop temp2
+		pop temp1
+		pop yl
+		pop yh
+		ret
+
+; handle everything that occurs every second
+timer0SecondHasPassed:
+	; TODO: title wait countdown
+	; TODO: Game timer - > 250ms beep
+	; todo: backlight timer
+	; TODO: 500ms start game beep

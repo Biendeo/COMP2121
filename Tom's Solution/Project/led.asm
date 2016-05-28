@@ -11,9 +11,9 @@
 .def temp1 = r16
 
 SetupLED:
-	ldi temp1, 0
+	SER TEMP1
 	out LED_DDR, temp1
-	out LED_OUT, temp1
+	;out LED_OUT, temp1
 	ret
 
 .undef temp1

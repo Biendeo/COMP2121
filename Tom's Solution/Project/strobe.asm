@@ -8,7 +8,7 @@
 .equ STROBE_DDR = DDRC
 .equ STROBE_IN = PINC
 
-.def temp1 = r16
+.def temp1 = r24
 
 ; TODO: This.
 SetupStrobe:

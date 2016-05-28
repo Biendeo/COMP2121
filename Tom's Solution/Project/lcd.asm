@@ -15,6 +15,16 @@
 	call lcd_data
 	call lcd_wait
 .endmacro
+.macro do_lcd_data_reg
+	mov r16, @0
+	rcall lcd_data
+	rcall lcd_wait
+.endmacro
+.macro do_lcd_command_reg
+	mov r16, @0
+	rcall lcd_data
+	rcall lcd_wait
+.endmacro
 
 .equ LCD_RS = 7
 .equ LCD_E = 6

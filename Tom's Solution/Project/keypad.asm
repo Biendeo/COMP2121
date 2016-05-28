@@ -37,8 +37,8 @@
 
 .cseg
 
-.def temp1 = r16
-.def temp2 = r17
+.def temp1 = r24
+.def temp2 = r25
 .def row = r18
 .def col = r19
 .def rowMask = r20

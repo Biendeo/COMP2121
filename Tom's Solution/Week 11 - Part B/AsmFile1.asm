@@ -4,17 +4,9 @@
 
 .def temp1 = r24
 .def temp2 = r25
-.equ seconds = 266666
+.equ seconds = 7000
+.equ maxBrightness = 0b1111111111111111
 
-; The macro clears a word (2 bytes) in a memory
-; the parameter @0 is the memory address for that word
-.macro clear
-    ldi YL, low(@0)     ; load the memory address to Y
-    ldi YH, high(@0)
-    clr temp 
-    st Y+, temp         ; clear the two bytes at @0 in SRAM
-    st Y, temp
-.endmacro
 .macro incStack
 	in yl, SPL
 	in yh, SPH
@@ -32,7 +24,6 @@
 
 .dseg
 counter: .byte 2
-pattern: .byte 1
 
 .cseg
 .org 0x0000
@@ -50,8 +41,6 @@ RESET:
 	clr temp1
 	sts counter, temp1
 	sts counter+1, temp1
-	ser temp1
-	sts pattern, temp1
 
 	; leds
 	ser temp1
@@ -62,9 +51,9 @@ RESET:
 	sts TIMSK3, temp1
 
 
-	ldi temp1, (1<<CS00)	; no prescaler for timer3
+	ldi temp1, (1<<CS30)	; no prescaler for timer3
 	sts TCCR3B, temp1		; TCCRNB handles prescaling
-	ldi temp1, (1<<WGM30)|(1<<COM3B1) ; wgm30: pwm, phase correct. com3b1, compare output channel b used 
+	ldi temp1, (1<<WGM32)|(1<<WGM30)|(1<<COM3B1) ; wgm30: pwm, phase correct. com3b1, compare output channel b used 
 	sts TCCR3A, temp1 ; TCCRNA handles copmare output mode
 
 	ldi temp1, 	1<<DDE2 ;pe2 is oc3b
@@ -74,7 +63,6 @@ RESET:
 	; configure duty cycle
 	ser temp1
 	sts OCR3BL, temp1
-	ser temp1
 	sts OCR3BH, temp1
 	sei
 
@@ -91,6 +79,7 @@ TIMER3ovf:
 	push temp2
 	push r20
 	incStack 2
+	ser temp1
 
 	; inc timer
 	lds temp1, counter
@@ -103,20 +92,7 @@ TIMER3ovf:
 	cpi temp1, low(seconds)
 	ldi r20, high(seconds)
 	cpc temp2, r20
-	brlt storeTimer
-
-	lds temp1, pattern
-	ldi temp2, 0b11111111
-	eor temp1, temp2
-	;out portc, temp1
-	sts pattern, temp1
-	decDutyCycle:
-		lds temp1, OCR3BL
-		lds temp2, OCR3BH
-		
-		sbiw temp2:temp1, 25
-		sts OCR3BL, temp1
-		sts OCR3BH, temp2
+	brlt decDutyCycle
 	
 	second:
 		;rcall resetDutyCycle
@@ -124,6 +100,13 @@ TIMER3ovf:
 		std Y+1, temp1
 		std Y+2, temp1
 		rjmp storeTimer
+	
+	decDutyCycle:
+		lds temp1, OCR3BL
+		lds temp2, OCR3BH
+		sbiw temp2:temp1, 63
+		sts OCR3BL, temp1
+		sts OCR3BH, temp2
 
 	storeTimer:
 		ldd temp1, y+1
@@ -144,8 +127,10 @@ TIMER3ovf:
 
 resetDutyCycle:
 	push temp1
-	ser temp1
-	ser temp2
+	ldi temp1, low(maxBrightness)
+	ldi temp2, high(maxBrightness)
+	sts OCR3BL, temp1
+	sts OCR3BH, temp2
 	pop temp1
 	ret
 
