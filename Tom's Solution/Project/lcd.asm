@@ -6,24 +6,32 @@
 
 
 .macro do_lcd_command
+	push r16
 	ldi r16, @0
 	call lcd_command
 	call lcd_wait
+	pop r16
 .endmacro
 .macro do_lcd_data
+	push r16
 	ldi r16, @0
 	call lcd_data
 	call lcd_wait
+	pop r16
 .endmacro
 .macro do_lcd_data_reg
+	push r16
 	mov r16, @0
 	rcall lcd_data
 	rcall lcd_wait
+	pop r16
 .endmacro
 .macro do_lcd_command_reg
+	push r16
 	mov r16, @0
 	rcall lcd_data
 	rcall lcd_wait
+	pop r16
 .endmacro
 
 .equ LCD_RS = 7

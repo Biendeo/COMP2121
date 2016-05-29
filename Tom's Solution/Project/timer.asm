@@ -5,6 +5,7 @@
 .equ TIMER_ASM = 1
 .equ DEBOUNCE_INTERVAL = 700
 .equ SECOND_INTERVAL = 7812
+.equ HALF_SECOND_INTERVAL = 3906
 .def temp1 = r24
 .def temp2 = r25
 .def temp3 = r16
@@ -27,7 +28,8 @@ Timer0Interrupt:
 		cpi temp1, flagSet
 		brne testForSecond
 		rcall handlePB0
-	testForSecond:
+		
+	testForSecond: ; use for countdown and game counter
 		lds temp1, timer0Counter
 		lds temp2, timer0Counter+1
 		adiw temp2:temp1, 1
@@ -35,12 +37,25 @@ Timer0Interrupt:
 		cpi temp1, low(SECOND_INTERVAL)
 		cpc temp2, r16
 		brlt storeTimer0Counter
-	call timer0SecondHasPassed
-		
+		clr temp1
+		clr temp2
+	
+	call Timer0GameTimer
 
 	storeTimer0Counter:
 		sts timer0Counter, temp1
 		sts timer0Counter+1, temp2
+
+	testPotTimer:
+		lds r16, currentMode
+		cpi r16, MODE_RESETPOTENT
+		brne return_Timer0Interrupt
+	
+	call Timer0PotTimer
+
+	storePotTimer:
+		sts potTimer, temp1
+		sts potTimer+1, temp2
 
 	return_Timer0Interrupt:
 		pop r16
@@ -107,12 +122,14 @@ handlePB0:
 ; Sets up timer0 with the right stuff (from the lecture sides).
 ; USED AS DEBOUNCE TIMER
 SetupTimer0:
+	push temp1
 	ldi temp1, 0b00000000
 	out TCCR0A, temp1
 	ldi temp1, 0b00000010
 	out TCCR0B, temp1
 	ldi temp1, 1 << TOIE0
 	sts TIMSK0, temp1
+	pop temp1
 	ret
 
 .undef temp1

@@ -8,26 +8,28 @@
 .equ KEYPAD_DDR = DDRL
 .equ KEYPAD_IN = PINL
 
-; TODO: Figure these out.
-.equ KEYPAD_1 = 0x00
-.equ KEYPAD_2 = 0x00
-.equ KEYPAD_3 = 0x00
-.equ KEYPAD_A = 0x00
-.equ KEYPAD_4 = 0x00
-.equ KEYPAD_5 = 0x00
-.equ KEYPAD_6 = 0x00
-.equ KEYPAD_B = 0x00
-.equ KEYPAD_7 = 0x00
-.equ KEYPAD_8 = 0x00
-.equ KEYPAD_9 = 0x00
-.equ KEYPAD_C = 0x00
-.equ KEYPAD_HASH = 0x00
-.equ KEYPAD_0 = 0x00
-.equ KEYPAD_STAR = 0x00
-.equ KEYPAD_D = 0x00
+; Keypad values:
+;	Lowest 4 bits Stores column
+;	Highest 4 bits stores row
+.equ KEYPAD_1 = 0b00000000
+.equ KEYPAD_2 = 0b00010000
+.equ KEYPAD_3 = 0b00100000
+.equ KEYPAD_A = 0b00110000
+.equ KEYPAD_4 = 0b00000001
+.equ KEYPAD_5 = 0b00010001
+.equ KEYPAD_6 = 0b00100001
+.equ KEYPAD_B = 0b00110001
+.equ KEYPAD_7 = 0b00000010
+.equ KEYPAD_8 = 0b00010010
+.equ KEYPAD_9 = 0b00100010
+.equ KEYPAD_C = 0b00110010
+.equ KEYPAD_STAR = 0b00000011
+.equ KEYPAD_0 = 0b00010011
+.equ KEYPAD_HASH = 0b00100011
+.equ KEYPAD_D = 0b00110011
 
 ; TODO: Rename these to much more useful things.
-.equ PORTA_DIR = 0xF0
+.equ PORTL_DIR = 0xF0
 .equ INIT_COL_MASK = 0xEF
 .equ INIT_ROW_MASK = 0x01
 .equ ROW_MASK = 0x0F
@@ -37,8 +39,8 @@
 
 .cseg
 
-.def temp1 = r24
-.def temp2 = r25
+.def temp1 = r16
+.def temp2 = r17
 .def row = r18
 .def col = r19
 .def rowMask = r20
@@ -48,8 +50,11 @@ SetupKeyPad:
 	; TODO: Set this up.
 	push temp1
 
-	ldi temp1, PORTA_DIR
+	ldi temp1, PORTL_DIR
 	sts KEYPAD_DDR, temp1
+
+	ldi temp1, FLAG_UNSET
+	sts keypadFlag, temp1
 	ser temp1
 	; This is just the LED stuff from the slides.
 	; Use this to test that we've done this right, but remove it once we need
@@ -72,6 +77,9 @@ GetKeyPadInput:
 		ldi colMask, INIT_COL_MASK
 		clr col
 	GetKeyPadInput_ColLoop:
+		lds temp1, keypadFlag
+		cpi temp1, FLAG_SET
+		brne GetKeyPadInput_Return
 		cpi col, 4
 		breq GetKeyPadInput_Start
 		sts KEYPAD_OUT, colMask

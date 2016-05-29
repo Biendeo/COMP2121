@@ -48,22 +48,31 @@ difficultyLevel: .byte 1
 
 currentStage: .byte 1
 
-currentRandomPotent: .byte 1 ; Or should this be two bytes?
+.equ FLAG_SET = 1
+.equ FLAG_UNSET = 0
+
+; POT
+potFlag: .byte 1
+potTimer: .byte 2
+currentDesiredPot: .byte 2 ; Or should this be two bytes?
 currentRandomCode: .byte 1
 randomCode1: .byte 1
 randomCode2: .byte 1
 randomCode3: .byte 1
 
-titleWaitCountdown: .byte 1
-
 ; timer 0
+; used as game timer and countdown timer
 timer0Counter: .byte 2
+timer0Seconds: .byte 2
 
-; DEBOUNCING
+; DEBOUNCING PB
 PB0dbFlag: .byte 1
 PB0dbTimer: .byte 2
 PB1dbFlag: .byte 1
 PB1dbTimer: .byte 2
+
+; keypad
+keypadFlag: .byte 1
 
 .cseg
 .include "m2560def.inc"
@@ -134,6 +143,7 @@ Start:
 
 ; Displays the title screen of the game.
 TitleScreen:
+	push temp1
 	do_lcd_data '2'
 	do_lcd_data '1'
 	do_lcd_data '2'
@@ -159,16 +169,27 @@ TitleScreen:
 	do_lcd_data 'e'
 	do_lcd_data 'r'
 
+	ldi temp1, FLAG_SET
+	sts keypadFlag, temp1
+	rcall PollForDifficulty
+
+	pop temp1
 	ret
 
 ; Starts the 3 second countdown to start the game
+; Called from pushButtonLeft in button.asm
 StartTitleWait:
-	push r16
-	ldi r16, MODE_TITLEWAIT
-	sts currentMode, r16
+	push temp1
+	ldi temp1, FLAG_UNSET
+	sts keypadFlag, temp1
+	ldi temp1, MODE_TITLEWAIT
+	sts currentMode, temp1
+	clr temp1
+	sts timer0Counter, temp1
+	sts timer0Counter+1, temp1
+	ldi temp1, 3
+	sts timer0Seconds, temp1
 
-	ldi r16, 3
-	sts titleWaitCountdown, r16
 	do_lcd_command LCD_CLEARDISPLAY
 	do_lcd_data '2'
 	do_lcd_data '1'
@@ -191,25 +212,158 @@ StartTitleWait:
 	do_lcd_data ' '
 	do_lcd_data 'i'
 	do_lcd_data 'n'
+	do_lcd_data ' '
+	rcall DisplayIAsAscii
+	pop temp1
+	ret
 
-	pop r16
+; Displays the title wait screen with the value in timer0Seconds
+; Called from StartTitleWait and timer0GameTimer
+UpdateTitleWait:
+	push temp1
+
+	lds temp1, timer0Seconds
+	do_lcd_command (16)
+	do_lcd_command (16)
+	do_lcd_command (16)
+	rcall DisplayIAsAscii
+
+	pop temp1
 	ret
 
 ; Starts the game section involving finding the right potential setting.
 ; This creates a new random potential to find.
+StartResetPotent:
+	push temp1
+	lds temp1, currentStage
+	inc temp1
+	sts currentStage, temp1
+	clr temp1
+	sts timer0Counter, temp1
+	sts timer0Counter+1, temp1
+	rcall SetGameSeconds
+
+	do_lcd_command LCD_CLEARDISPLAY
+	do_lcd_data 'R'
+	do_lcd_data 'e'
+	do_lcd_data 's'
+	do_lcd_data 'e'
+	do_lcd_data 't'
+	do_lcd_data ' '
+	do_lcd_data 'P'
+	do_lcd_data 'O'
+	do_lcd_data 'T'
+	do_lcd_data ' '
+	do_lcd_data 't'
+	do_lcd_data 'o'
+	do_lcd_data ' '
+	do_lcd_data '0'
+	do_lcd_command LCD_SECONDLINE
+	do_lcd_data 'R'
+	do_lcd_data 'e'
+	do_lcd_data 'm'
+	do_lcd_data 'a'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'g'
+	do_lcd_data ':'
+	do_lcd_data ' '
+
+	lds temp1, timer0Seconds
+	rcall displayIAsAscii
+	
+	ldi temp1, MODE_RESETPOTENT
+	sts currentMode, temp1
+	pop temp1
+	ret
+
+; Sets the GameSecondsBased on difficulty
+; called by StartResetPotent
+SetGameSeconds:
+	push temp1
+	push temp2
+	
+	ldi temp2, 20 ; else timer = 20
+	test_easy:
+		lds temp1, difficultyLevel
+		cpi temp1, DIFFICULTY_EASY
+		brne test_med
+		jmp storeDifficultySeconds
+	test_med:
+		cpi temp1, DIFFICULTY_MEDIUM
+		brne test_hard
+		ldi temp2, 15
+		jmp storeDifficultySeconds
+	test_hard:
+		cpi temp1, DIFFICULTY_HARD
+		brne test_rlyhard
+		ldi temp2, 10
+		jmp storeDifficultySeconds
+	test_rlyhard:
+		cpi temp1, DIFFICULTY_REALLYHARD
+		brne storeDifficultySeconds
+		ldi temp2, 6
+	
+	storeDifficultySeconds:	
+		sts timer0Seconds, temp2
+	
+	return_SetGameSeconds:
+		pop temp2
+		pop temp1
+		ret
+
+; Arguments: gametimervalue in temp1
+; Called by timer0GameTimer
+UpdateResetPotent:
+	do_lcd_command (16)
+	do_lcd_command (16)
+	do_lcd_command (16)
+	rcall DisplayIAsAscii
+	ret
+
 StartFindPotent:
-	ldi r16, MODE_FINDPOTENT
-	sts currentMode, r16
-
-	lds r16, currentStage
-	inc r16
-	sts currentStage, r16
-
-	rcall GenerateNewRandomPotent
+	push temp1
 	; TODO: Setup the timer.
 	; TODO: Setup another timer when the potentiometer is in the right place.
 	; TODO: Use some booleans to detect whether the user has entered or exited
 	; the spot.
+	do_lcd_command LCD_CLEARDISPLAY
+	do_lcd_data 'F'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'd'
+	do_lcd_data ' '
+	do_lcd_data 'P'
+	do_lcd_data 'O'
+	do_lcd_data 'T'
+	do_lcd_data ' '
+	do_lcd_data 'P'
+	do_lcd_data 'o'
+	do_lcd_data 's'
+	do_lcd_command LCD_SECONDLINE
+	do_lcd_data 'R'
+	do_lcd_data 'e'
+	do_lcd_data 'm'
+	do_lcd_data 'a'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data 'g'
+	do_lcd_data ':'
+	do_lcd_data ' '
+	lds temp1, timer0Seconds
+	rcall displayIAsAscii
+
+
+	call GenerateNewRandomPotent
+
+	ldi temp1, MODE_FINDPOTENT
+	sts currentMode, temp1
+
+	pop temp1
 	ret
 
 ; Starts the section that involves finding a code character.
@@ -245,6 +399,38 @@ StartFindCode:
 		; TODO: Otherwise, keep looping.
 	ret
 
+TimeoutScreen:
+	push temp1
+	do_lcd_command LCD_CLEARDISPLAY
+	do_lcd_data 'G'
+	do_lcd_data 'a'
+	do_lcd_data 'm'
+	do_lcd_data 'e'
+	do_lcd_data ' '
+	do_lcd_data 'O'
+	do_lcd_data 'v'
+	do_lcd_data 'e'
+	do_lcd_data 'r'
+	do_lcd_command LCD_SECONDLINE
+	do_lcd_data 'Y'
+	do_lcd_data 'o'
+	do_lcd_data 'u'
+	do_lcd_data ' '
+	do_lcd_data 'L'
+	do_lcd_data 'o'
+	do_lcd_data 's'
+	do_lcd_data 'e'
+	do_lcd_data '!'
+	; TODO: poll keypad and wait for push button to restart game
+
+	ldi temp1, MODE_GAMELOSE
+	sts currentMode, temp1
+	ldi temp1, FLAG_SET
+	sts keypadFlag, temp1
+	rcall PollForReset
+
+	pop temp1
+	ret
 ; Creates a new random potential and stores it.
 GenerateNewRandomPotent:
 	push r16
@@ -252,7 +438,7 @@ GenerateNewRandomPotent:
 	lds r16, currentRandomValue
 	; TODO: Figure out any refinements we need to make this work properly.
 	; (restrict it to a range?)
-	sts currentRandomPotent, r16
+	sts currentDesiredPot, r16
 	pop r16
 	ret
 	
@@ -296,6 +482,58 @@ Divide:
 .undef divisor
 .undef return
 
+
+.def remainder = R4
+.def divisor  = R16
+.def returnL  = R2
+.def returnH  = R3
+
+testDivide2Byte:
+	ldi divisor, 10
+	ldi temp2, 0
+	ldi temp1, 25
+	rcall Divide2Byte
+
+	loop: rjmp loop
+; divides a 2 byte number with a 1 byte number and returns a 2 byte result with remainder
+Divide2Byte:
+	push temp1
+	push temp2
+	push divisor
+	clr remainder
+	clr returnH 
+	clr returnL
+	inc returnL 
+	div8a:
+		clc      ; clear carry-bit
+		rol temp1 ; rotate the next-upper bit of the number
+		rol temp2 ; to the interim register (multiply by 2)
+		rol remainder
+		brcs div8b ; a one has rolled left, so subtract
+		cp remainder,divisor ; Division result 1 or 0?
+		brcs div8c  ; jump over subtraction, if smaller
+	div8b:
+		sub remainder,divisor; subtract number to divide with
+		sec      ; set carry-bit, result is a 1
+		rjmp div8d  ; jump to shift of the result bit
+	div8c:
+		clc      ; clear carry-bit, resulting bit is a 0
+	div8d:
+		rol returnL  ; rotate carry-bit into result registers
+		rol returnH
+		brcc div8a  ; as long as zero rotate out of the result
+					; registers: go on with the division loop
+	pop divisor
+	pop temp2
+	pop temp1
+	ret
+
+.undef remainder
+.undef divisor
+.undef returnL
+.undef returnH
+
+
 .def argument = r16
 .def modulo = r17
 .def return = r18
@@ -322,76 +560,205 @@ Modulus:
 
 ; Stops the program.
 ; This only ever needs to be called on screens waiting for a push button.
+
+PollForDifficulty:
+	push r16
+	push temp1
+	loop_PollForDifficulty:
+		rcall GetKeypadInput
+		lds temp1, keypadFlag
+		cpi temp1, FLAG_SET
+		brne return_PollForDifficulty
+		cpi r16, KEYPAD_A
+		breq SetDifficultyEasy
+		cpi r16, KEYPAD_B
+		breq SetDifficultyMedium
+		cpi r16, KEYPAD_C
+		breq SetDifficultyHard
+		cpi r16, KEYPAD_D
+		breq SetDifficultyReallyHard
+		rjmp loop_PollForDifficulty
+	return_PollForDifficulty:
+		pop temp1
+		pop r16
+		ret
+
+SetDifficultyEasy:
+	ldi r16, DIFFICULTY_EASY
+	sts difficultyLevel, r16
+	rjmp loop_PollForDifficulty
+
+SetDifficultyMedium:
+	ldi r16, DIFFICULTY_MEDIUM
+	sts difficultyLevel, r16
+	rjmp loop_PollForDifficulty
+
+SetDifficultyHard:
+	ldi r16, DIFFICULTY_HARD
+	sts difficultyLevel, r16
+	rjmp loop_PollForDifficulty
+
+SetDifficultyReallyHard:
+	ldi r16, DIFFICULTY_REALLYHARD
+	sts difficultyLevel, r16
+	rjmp loop_PollForDifficulty
+
+PollForReset:
+	rcall GetKeypadInput
+	rjmp RESET
+
 Halt:
 	rjmp Halt
-
-displayIAsASCII:
+.def temp3 = r16
+; takes a two byte number in temp1 and temp2 and displays it as ascii
+DisplayIAsASCII:
 	push yh
 	push yl
 	push temp1
-	push temp2 
-	incStack 4
+	push temp2
+	push temp3
+	incStack 6
 	std Y+1, temp1 ; load starting number
-	clr temp2
-	std Y+2, temp2 ; num Hundreds
-	std Y+3, temp2 ; num tens
-	std Y+4, temp2 ; num ones
+	std Y+2, temp2
+	clr temp3
+	std Y+2, temp3 ; num Hundreds
+	std Y+3, temp3 ; num tens
+	std Y+4, temp3 ; num ones
 
 
 	divOneHundred:
 		cpi temp1, 100
-		brlt pushHundreds
+		brlo pushHundreds
 		subi temp1, 100
-		inc temp2
+		inc temp3
 		rjmp divOneHundred
 	
 	pushHundreds:
-		std Y+2, temp2
-		clr temp2
+		std Y+2, temp3
+		clr temp3
 
 	divTen:
 		cpi temp1, 10
-		brlt pushTens
+		brlo pushTens
 		subi temp1, 10
-		inc temp2
+		inc temp3
 		rjmp divTen
 
 	pushTens:
-		std Y+3, temp2
-		clr temp2
+		std Y+3, temp3
+		clr temp3
 
 	divOne:
 		cpi temp1, 1
-		brlt pushOnes
+		brlo pushOnes
 		subi temp1, 1
-		inc temp2
+		inc temp3
 		rjmp divOne
 
 	pushOnes:
-		std Y+4, temp2
+		std Y+4, temp3
 	
-	ldd temp2, y+2
-	subi temp2, -'0'
-	do_lcd_data_reg temp2
-	ldd temp2, y+3
-	subi temp2, -'0'
-	do_lcd_data_reg temp2
-	ldd temp2, y+4
-	subi temp2, -'0'
-	do_lcd_data_reg temp2
-
+	ldd temp3, y+2
+	subi temp3, -'0'
+	do_lcd_data_reg temp3
+	ldd temp3, y+3
+	subi temp3, -'0'
+	do_lcd_data_reg temp3
+	ldd temp3, y+4
+	subi temp3, -'0'
+	do_lcd_data_reg temp3
 
 	return_displayIAsASCII:
-		decStack 4
+		decStack 6
+		pop temp3
 		pop temp2
 		pop temp1
 		pop yl
 		pop yh
 		ret
 
-; handle everything that occurs every second
-timer0SecondHasPassed:
-	; TODO: title wait countdown
+; handle countdown and gameTimer
+; called from timer0Interrupt in timer.asm
+Timer0GameTimer:
+	push temp1
+	push temp2
+	push r16
+	; what mode are we in?
+	handleTitleWait:
+		lds r16, currentMode
+		cpi r16, MODE_TITLEWAIT
+		brne handleGameTimer
+		lds temp1, timer0Seconds
+		dec temp1
+		cpi temp1, 0
+		breq switchToResetPotentMode
+		sts timer0Seconds, temp1
+		rcall UpdateTitleWait
+
+		rjmp handleGameTimer
+		switchToResetPotentMode:
+			rcall StartResetPotent
+			rjmp return_Timer0GameTimer
+			
+	handleGameTimer:
+		cpi r16, MODE_RESETPOTENT
+		breq updateGameTimer
+		cpi r16, MODE_FINDPOTENT
+		breq updateGameTimer
+		rjmp return_Timer0GameTimer
+	updateGameTimer:
+		lds temp1, timer0Seconds
+		dec temp1
+		sts timer0Seconds, temp1
+		cpi temp1, 0
+		breq timeout
+
+		rcall UpdateResetPotent
+		rjmp return_Timer0GameTimer
+
+	timeout:
+		rcall TimeoutScreen
+	
 	; TODO: Game timer - > 250ms beep
 	; todo: backlight timer
 	; TODO: 500ms start game beep
+	return_Timer0GameTimer:
+		pop r16
+		pop temp2
+		pop temp1
+		ret
+
+Timer0PotTimer:
+	push temp1
+	push temp2
+	push r16
+
+	; is flag set?
+	lds r16, potFlag
+
+	cpi r16, FLAG_SET
+	brne return_Timer0PotTimer
+
+	lds temp1, potTimer
+	lds temp2, potTimer+1
+	adiw temp2:temp1, 1
+	sts potTimer, temp1
+	sts potTimer+1, temp2
+	ldi r16, high(HALF_SECOND_INTERVAL)
+	cpi temp1, low(HALF_SECOND_INTERVAL)
+	cpc temp2, r16
+	breq switchToFindPotentMode
+
+	rjmp return_Timer0PotTimer
+
+	switchToFindPotentMode:
+		ldi r16, FLAG_UNSET
+		sts potFlag, r16
+		rcall StartFindPotent
+		rjmp return_Timer0PotTimer
+		
+	return_Timer0PotTimer:
+		pop r16
+		pop temp2
+		pop temp1
+		ret

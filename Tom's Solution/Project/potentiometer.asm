@@ -29,6 +29,9 @@ SetupPotent:
 	ldi temp1, (1 << ADEN) | (1 << ADSC) | (1 << ADIE) | (5 << ADPS0) | (1 << ADATE)
 	sts ADCSRA, temp1
 	pop temp1
+
+	ldi temp1, FLAG_UNSET
+	sts potFlag, temp1
 	ret
 
 ADCCint:
@@ -36,17 +39,45 @@ ADCCint:
 	in temp1, SREG
 	push temp1
 	push temp2
-	ser temp1
-
+	push r16
+	
+	lds temp1, currentMode
+	; RESET POT MODE
+	cpi temp1, MODE_RESETPOTENT
+	brne return_ADCCint
 	lds temp1, ADCL
 	lds temp2, ADCH
-	; handle change potentiometer logic
+	cpi temp1, 0
+	brne potIsNotZero
+	cpi temp2, 0
+	brne potIsNotZero
+	
+	rjmp potIsZero
+	
+	setPotResetFlag:
+		sts potFlag, r16
 
-	pop temp2
-	pop temp1
-	out SREG, temp1
-	pop temp1
-	reti
+	return_ADCCint:
+		pop r16
+		pop temp2
+		pop temp1
+		out SREG, temp1
+		pop temp1
+		reti
+
+potIsZero:
+	lds r16, potFlag
+	cpi r16, FLAG_SET
+	breq setPotResetFlag
+	clr r16
+	sts potTimer, r16
+	sts potTimer+1, r16
+	ldi r16, FLAG_SET
+	rjmp setPotResetFlag
+
+potIsNotZero:
+	ldi r16, FLAG_UNSET
+	rjmp setPotResetFlag
 
 .undef temp1
 .undef temp2

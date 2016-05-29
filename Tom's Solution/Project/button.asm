@@ -19,6 +19,10 @@ SetupButtons:
 	ori temp1, (1<<INT0)
 	ori temp1, (1<<INT1)
 	out EIMSK, temp1
+
+	ldi temp1, FLAG_UNSET
+	sts PB0dbFlag, temp1
+	sts PB1dbFlag, temp1
 	
 	sei
 	ret
@@ -52,8 +56,7 @@ PushRightButton:
 	sts PB0dbFlag, temp1
 	
 	; main logic
-	;inc r12
-	;out portc, r12
+	jmp Reset
 
 	return_PushRightButton:
 		pop temp1
