@@ -448,41 +448,44 @@ StartFindCode:
 		do_lcd_data 'b'
 		do_lcd_data 'e'
 		do_lcd_data 'r'
+	
+	ldi r16, MODE_FINDCODE
+	sts currentMode, r16
 
 	ldi temp1, FLAG_SET
 	sts keypadFlag, temp1 ; turn on keypad
-	lds temp1, currentRandomCode
-	FindCode_loop:
+	;lds temp1, currentRandomCode
+	;FindCode_loop:
 		rcall GetKeyPadInput
-		; if code is correct: break to find code correct
-		cp r16, temp1
-		breq FindCode_correct
+	;	; if code is correct: break to find code correct
+	;	cp r16, temp1
+	;	breq FindCode_correct
 		; code incorrect
-		ldi r16, FLAG_UNSET
-		sts keypadHoldFlag, r16
-		rjmp FindCode_loop
+	;	ldi r16, FLAG_UNSET
+	;	sts keypadHoldFlag, r16
+	;	rjmp FindCode_loop
 
-	FindCode_correct:
+	;FindCode_correct:
 		; correct input detected, set keypad Hold flag
 		; if key is not held down, 
 		;	keypadHoldFlag will be unset in GetKeyPadInput
 		; if the flag is already set, continue
 		; if keypadFlag is unset, a second has passed:
 		;			return 
-		lds r16, keypadFlag
-		cpi r16, FLAG_UNSET
-		breq return_StartFindCode
+	;	lds r16, keypadFlag
+	;	cpi r16, FLAG_UNSET
+	;	breq return_StartFindCode
 
-		lds r16, keypadHoldFlag
-		cpi r16, FLAG_SET
-		breq FindCode_loop
+	;	lds r16, keypadHoldFlag
+	;	cpi r16, FLAG_SET
+	;	breq FindCode_loop
 		;	else: reset timer and set flag
-		clr r16
-		sts potTimer, r16
-		sts potTimer+1, r16 
-		ldi r16, FLAG_SET
-		sts keypadHoldFlag, r16
-		rjmp FindCode_loop
+	;	clr r16
+	;	sts potTimer, r16
+	;	sts potTimer+1, r16 
+	;	ldi r16, FLAG_SET
+	;	sts keypadHoldFlag, r16
+	;	rjmp FindCode_loop
 
 	return_StartFindCode:
 	   pop r16
@@ -522,8 +525,8 @@ TimeoutScreen:
 	do_lcd_data '!'
 	
 	clr temp1
-	out portc, temp1
-	out portg, temp1
+	;out portc, temp1
+	;out portg, temp1
 
 	ldi temp1, MODE_GAMELOSE
 	sts currentMode, temp1
@@ -920,8 +923,6 @@ Timer0KeypadTimer:
 	rjmp return_Timer0KeypadTimer
 
 	switchToRoundCompletionMode:
-		clr r16
-		;out portc, r16
 		ldi r16, FLAG_UNSET
 		sts keypadHoldFlag, r16
 		sts keypadFlag, r16

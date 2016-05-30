@@ -82,8 +82,8 @@ GetKeyPadInput:
 		clr col
 		; col loop has run without detecting input
 		; unset keypad hold flag
-		ldi temp1, FLAG_UNSET
-		sts keypadHoldFlag, temp1 
+		;ldi temp1, FLAG_UNSET
+		;sts keypadHoldFlag, temp1 
 	GetKeyPadInput_ColLoop:
 		lds temp1, keypadFlag
 		cpi temp1, FLAG_SET ; is keypad enabled?

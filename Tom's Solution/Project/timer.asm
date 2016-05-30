@@ -65,7 +65,8 @@ Timer0Interrupt:
 		breq gotoKeyPadTimerHandler
 		rjmp return_Timer0Interrupt
 	gotoKeyPadTimerHandler:
-		rcall Timer0KeypadTimer
+		out portc, r16
+		;rcall Timer0KeypadTimer
 
 	return_Timer0Interrupt:
 		pop r16
