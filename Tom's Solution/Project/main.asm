@@ -134,6 +134,8 @@ Start:
 
 ; Displays the title screen of the game.
 TitleScreen:
+	do_lcd_command LCD_CLEARDISPLAY
+
 	do_lcd_data '2'
 	do_lcd_data '1'
 	do_lcd_data '2'
@@ -169,31 +171,48 @@ StartTitleWait:
 
 	ldi r16, 3
 	sts titleWaitCountdown, r16
-	do_lcd_command LCD_CLEARDISPLAY
-	do_lcd_data '2'
-	do_lcd_data '1'
-	do_lcd_data '2'
-	do_lcd_data '1'
-	do_lcd_data ' '
-	do_lcd_data '1'
-	do_lcd_data '6'
-	do_lcd_data 's'
-	do_lcd_data '1'
-	do_lcd_command LCD_SECONDLINE
-	do_lcd_data 'S'
-	do_lcd_data 't'
-	do_lcd_data 'a'
-	do_lcd_data 'r'
-	do_lcd_data 't'
-	do_lcd_data 'i'
-	do_lcd_data 'n'
-	do_lcd_data 'g'
-	do_lcd_data ' '
-	do_lcd_data 'i'
-	do_lcd_data 'n'
 
-	pop r16
-	ret
+	StartTitleWait_DisplayPart:
+		mov r17, r16
+		do_lcd_command LCD_CLEARDISPLAY
+		do_lcd_data '2'
+		do_lcd_data '1'
+		do_lcd_data '2'
+		do_lcd_data '1'
+		do_lcd_data ' '
+		do_lcd_data '1'
+		do_lcd_data '6'
+		do_lcd_data 's'
+		do_lcd_data '1'
+		do_lcd_command LCD_SECONDLINE
+		do_lcd_data 'S'
+		do_lcd_data 't'
+		do_lcd_data 'a'
+		do_lcd_data 'r'
+		do_lcd_data 't'
+		do_lcd_data 'i'
+		do_lcd_data 'n'
+		do_lcd_data 'g'
+		do_lcd_data ' '
+		do_lcd_data 'i'
+		do_lcd_data 'n'
+		do_lcd data ' '
+
+		subi r16, -'0'
+		rcall displayIAsASCII
+		subi r16, 0
+		
+		cpi r16, 0
+		breq StartTitleWait_Exit
+	StartTitleWait_WaitLoop:
+		lds r16, titleWaitCountdown
+		cp r16, r17
+		brne StartTitleWait_DisplayPart
+		rjmp StartTitleWait_WaitLoop
+
+	StartTitleWait_Exit:
+		pop r16
+		ret
 
 ; Starts the game section involving finding the right potential setting.
 ; This creates a new random potential to find.
@@ -325,7 +344,7 @@ Modulus:
 Halt:
 	rjmp Halt
 
-displayIAsASCII:
+displayIAsASCII: ; Refactor this as DisplayIAsASCII
 	push yh
 	push yl
 	push temp1

@@ -1,9 +1,9 @@
-; potentiometer.asm
-; Handles the speaker stuff.
+; button.asm
+; Handles the button stuff.
 
 .ifndef BUTTON_ASM
 .equ BUTTON_ASM = 1
-.equ flagSet = 1
+.equ flagSet = 1 ; TODO: Refactor this to BUTTON_FLAG_SET, and so on.
 .equ flagUnSet = 0
 
 .def temp1 = r24
@@ -58,5 +58,7 @@ PushRightButton:
 	return_PushRightButton:
 		pop temp1
 		reti
+
+.undef temp1
 
 .endif
