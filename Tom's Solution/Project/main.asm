@@ -198,10 +198,11 @@ StartTitleWait:
 		do_lcd_data 'n'
 		do_lcd data ' '
 
-		subi r16, -'0'
+		push r24
+		mv r24, r16
 		rcall displayIAsASCII
-		subi r16, 0
-		
+		pop r24
+
 		cpi r16, 0
 		breq StartTitleWait_Exit
 	StartTitleWait_WaitLoop:
