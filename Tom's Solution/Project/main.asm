@@ -389,15 +389,24 @@ displayIAsASCII: ; Refactor this as DisplayIAsASCII
 	pushOnes:
 		std Y+4, temp2
 	
-	ldd temp2, y+2
-	subi temp2, -'0'
-	do_lcd_data_reg temp2
-	ldd temp2, y+3
-	subi temp2, -'0'
-	do_lcd_data_reg temp2
-	ldd temp2, y+4
-	subi temp2, -'0'
-	do_lcd_data_reg temp2
+	printHundreds:
+		ldd temp2, y+2
+		cpi temp2, 0
+		breq printTens
+		subi temp2, -'0'
+		do_lcd_data_reg temp2
+
+	printTens:
+		ldd temp2, y+3
+		cpi temp2, 0
+		breq printTens
+		subi temp2, -'0'
+		do_lcd_data_reg temp2
+
+	printOnes:
+		ldd temp2, y+4
+		subi temp2, -'0'
+		do_lcd_data_reg temp2
 
 
 	return_displayIAsASCII:
