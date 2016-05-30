@@ -146,6 +146,8 @@ Start:
 ; Displays the title screen of the game.
 TitleScreen:
 	push temp1
+	do_lcd_command LCD_CLEARDISPLAY
+
 	do_lcd_data '2'
 	do_lcd_data '1'
 	do_lcd_data '2'
@@ -763,15 +765,24 @@ DisplayIAsASCII:
 	pushOnes:
 		std Y+4, temp3
 	
-	ldd temp3, y+2
-	subi temp3, -'0'
-	do_lcd_data_reg temp3
-	ldd temp3, y+3
-	subi temp3, -'0'
-	do_lcd_data_reg temp3
-	ldd temp3, y+4
-	subi temp3, -'0'
-	do_lcd_data_reg temp3
+	;printHundreds:
+		ldd temp2, y+2
+		;cpi temp2, 0
+		;breq printTens
+		subi temp2, -'0'
+		do_lcd_data_reg temp2
+
+	;printTens:
+		ldd temp2, y+3
+		;cpi temp2, 0
+		;breq printOnes
+		subi temp2, -'0'
+		do_lcd_data_reg temp2
+
+	;printOnes:
+		ldd temp2, y+4
+		subi temp2, -'0'
+		do_lcd_data_reg temp2
 
 	return_displayIAsASCII:
 		decStack 6
