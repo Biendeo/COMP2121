@@ -50,6 +50,7 @@ currentStage: .byte 1
 
 .equ FLAG_SET = 1
 .equ FLAG_UNSET = 0
+.equ FLAG_ALT = 2
 
 ; POT
 potFlag: .byte 1
@@ -73,6 +74,7 @@ PB1dbTimer: .byte 2
 
 ; keypad
 keypadFlag: .byte 1
+keypadHoldFlag: .byte 1
 
 .cseg
 .include "m2560def.inc"
@@ -172,6 +174,12 @@ TitleScreen:
 	ldi temp1, FLAG_SET
 	sts keypadFlag, temp1
 	rcall PollForDifficulty
+	
+	;ser temp1
+	;out portc, temp1
+
+	ldi temp1, FLAG_UNSET
+	sts keypadFlag, temp1 ; turn off the keypad polling
 
 	pop temp1
 	ret
@@ -181,12 +189,12 @@ TitleScreen:
 StartTitleWait:
 	push temp1
 	ldi temp1, FLAG_UNSET
-	sts keypadFlag, temp1
-	ldi temp1, MODE_TITLEWAIT
-	sts currentMode, temp1
+	sts keypadFlag, temp1 ; turn off the keypad polling
+	ldi temp1, MODE_TITLEWAIT 
+	sts currentMode, temp1 ; change mode
 	clr temp1
 	sts timer0Counter, temp1
-	sts timer0Counter+1, temp1
+	sts timer0Counter+1, temp1 ; reset the timer
 	ldi temp1, 3
 	sts timer0Seconds, temp1
 
@@ -231,17 +239,25 @@ UpdateTitleWait:
 	pop temp1
 	ret
 
+InitialStartResetPotent:
+	push temp1
+	lds temp1, currentStage
+	inc temp1					; increment the round counter
+	sts currentStage, temp1
+
+	clr temp1
+	sts timer0Counter, temp1	; set the game length based on difficulty
+	sts timer0Counter+1, temp1
+	rcall SetGameSeconds
+	rcall StartResetPotent
+
+	pop temp1
+	ret
+	
 ; Starts the game section involving finding the right potential setting.
 ; This creates a new random potential to find.
 StartResetPotent:
 	push temp1
-	lds temp1, currentStage
-	inc temp1
-	sts currentStage, temp1
-	clr temp1
-	sts timer0Counter, temp1
-	sts timer0Counter+1, temp1
-	rcall SetGameSeconds
 
 	do_lcd_command LCD_CLEARDISPLAY
 	do_lcd_data 'R'
@@ -275,7 +291,8 @@ StartResetPotent:
 	rcall displayIAsAscii
 	
 	ldi temp1, MODE_RESETPOTENT
-	sts currentMode, temp1
+	sts currentMode, temp1		; change mode
+	
 	pop temp1
 	ret
 
@@ -357,7 +374,6 @@ StartFindPotent:
 	lds temp1, timer0Seconds
 	rcall displayIAsAscii
 
-
 	call GenerateNewRandomPotent
 
 	ldi temp1, MODE_FINDPOTENT
@@ -367,7 +383,10 @@ StartFindPotent:
 	ret
 
 ; Starts the section that involves finding a code character.
+; Called from Timer0PotTimer
 StartFindCode:
+	push temp1
+	push r16
 	ldi r16, MODE_FINDCODE
 	sts currentMode, r16
 
@@ -396,7 +415,87 @@ StartFindCode:
 		; TODO: Get the keypad input and confirm it's the key.
 		; TODO: Use a timer and poll whether the key is down in a loop.
 		; TODO: When the timer runs out and the key always was down, break.
-		; TODO: Otherwise, keep looping.
+		; TODO: Otherwise, keep looping.]
+		do_lcd_command LCD_CLEARDISPLAY
+		do_lcd_data 'P'
+		do_lcd_data 'o'
+		do_lcd_data 's'
+		do_lcd_data 'i'
+		do_lcd_data 't'
+		do_lcd_data 'i'
+		do_lcd_data 'o'
+		do_lcd_data 'n'
+		do_lcd_data ' '
+		do_lcd_data 'F'
+		do_lcd_data 'o'
+		do_lcd_data 'u'
+		do_lcd_data 'n'
+		do_lcd_data 'd'
+		do_lcd_data '!'
+		do_lcd_command LCD_SECONDLINE
+		do_lcd_data 'S'
+		do_lcd_data 'c'
+		do_lcd_data 'a'
+		do_lcd_data 'n'
+		do_lcd_data ' '
+		do_lcd_data 'f'
+		do_lcd_data 'o'
+		do_lcd_data 'r'
+		do_lcd_data ' '
+		do_lcd_data 'N'
+		do_lcd_data 'u'
+		do_lcd_data 'm'
+		do_lcd_data 'b'
+		do_lcd_data 'e'
+		do_lcd_data 'r'
+
+	ldi temp1, FLAG_SET
+	sts keypadFlag, temp1 ; turn on keypad
+	lds temp1, currentRandomCode
+	FindCode_loop:
+		rcall GetKeyPadInput
+		; if code is correct: break to find code correct
+		cp r16, temp1
+		breq FindCode_correct
+		; code incorrect
+		ldi r16, FLAG_UNSET
+		sts keypadHoldFlag, r16
+		rjmp FindCode_loop
+
+	FindCode_correct:
+		; correct input detected, set keypad Hold flag
+		; if key is not held down, 
+		;	keypadHoldFlag will be unset in GetKeyPadInput
+		; if the flag is already set, continue
+		; if keypadFlag is unset, a second has passed:
+		;			return 
+		lds r16, keypadFlag
+		cpi r16, FLAG_UNSET
+		breq return_StartFindCode
+
+		lds r16, keypadHoldFlag
+		cpi r16, FLAG_SET
+		breq FindCode_loop
+		;	else: reset timer and set flag
+		clr r16
+		sts potTimer, r16
+		sts potTimer+1, r16 
+		ldi r16, FLAG_SET
+		sts keypadHoldFlag, r16
+		rjmp FindCode_loop
+
+	return_StartFindCode:
+	   pop r16
+	   pop temp1
+	   ret
+
+RoundCompletion:
+	push temp1
+	push temp2
+
+
+	pop temp2
+	pop temp1
 	ret
 
 TimeoutScreen:
@@ -421,16 +520,19 @@ TimeoutScreen:
 	do_lcd_data 's'
 	do_lcd_data 'e'
 	do_lcd_data '!'
-	; TODO: poll keypad and wait for push button to restart game
+	
+	clr temp1
+	out portc, temp1
+	out portg, temp1
 
 	ldi temp1, MODE_GAMELOSE
 	sts currentMode, temp1
+
 	ldi temp1, FLAG_SET
 	sts keypadFlag, temp1
+	; TODO: This routine seems to reset difficulty? Look into the sequence of calls leading up to this.
 	rcall PollForReset
-
-	pop temp1
-	ret
+	rjmp RESET
 ; Creates a new random potential and stores it.
 GenerateNewRandomPotent:
 	push r16
@@ -564,6 +666,7 @@ Modulus:
 PollForDifficulty:
 	push r16
 	push temp1
+	clr temp1
 	loop_PollForDifficulty:
 		rcall GetKeypadInput
 		lds temp1, keypadFlag
@@ -605,7 +708,7 @@ SetDifficultyReallyHard:
 
 PollForReset:
 	rcall GetKeypadInput
-	rjmp RESET
+	ret
 
 Halt:
 	rjmp Halt
@@ -624,7 +727,6 @@ DisplayIAsASCII:
 	std Y+2, temp3 ; num Hundreds
 	std Y+3, temp3 ; num tens
 	std Y+4, temp3 ; num ones
-
 
 	divOneHundred:
 		cpi temp1, 100
@@ -683,7 +785,12 @@ Timer0GameTimer:
 	push temp1
 	push temp2
 	push r16
-	; what mode are we in?
+	
+	; title wait 
+	; count down from 3, 
+	; when == 0: switch to reset potentmode
+	; otherwise: update timer on screen
+	;	return
 	handleTitleWait:
 		lds r16, currentMode
 		cpi r16, MODE_TITLEWAIT
@@ -692,14 +799,21 @@ Timer0GameTimer:
 		dec temp1
 		cpi temp1, 0
 		breq switchToResetPotentMode
+
 		sts timer0Seconds, temp1
 		rcall UpdateTitleWait
+		rjmp return_Timer0GameTimer
 
-		rjmp handleGameTimer
 		switchToResetPotentMode:
-			rcall StartResetPotent
+			rcall InitialStartResetPotent
 			rjmp return_Timer0GameTimer
-			
+	; Game Timer
+	; if mode == resetpotent or findpotent
+	; count down from game length timer
+	; update screen timer
+	; when == 0: switch to timeout screen
+	; otherwise: update timer on screen
+	;	return	
 	handleGameTimer:
 		cpi r16, MODE_RESETPOTENT
 		breq updateGameTimer
@@ -735,7 +849,6 @@ Timer0PotTimer:
 
 	; is flag set?
 	lds r16, potFlag
-
 	cpi r16, FLAG_SET
 	brne return_Timer0PotTimer
 
@@ -744,20 +857,76 @@ Timer0PotTimer:
 	adiw temp2:temp1, 1
 	sts potTimer, temp1
 	sts potTimer+1, temp2
-	ldi r16, high(HALF_SECOND_INTERVAL)
-	cpi temp1, low(HALF_SECOND_INTERVAL)
-	cpc temp2, r16
-	breq switchToFindPotentMode
+	lds r16, currentMode
+	cpi r16, MODE_FINDPOTENT
+	breq Timer0PotTimer_Second
 
-	rjmp return_Timer0PotTimer
+	Timer0PotTimer_halfSecond:
+		ldi r16, high(HALF_SECOND_INTERVAL)
+		cpi temp1, low(HALF_SECOND_INTERVAL)
+		cpc temp2, r16
+		breq switchToFindPotentMode
+		rjmp return_Timer0PotTimer
+	Timer0PotTimer_Second:
+		ldi r16, high(SECOND_INTERVAL)
+		cpi temp1, low(SECOND_INTERVAL)
+		cpc temp2, r16
+		breq switchToFindCodeMode
+		rjmp return_Timer0PotTimer
 
 	switchToFindPotentMode:
 		ldi r16, FLAG_UNSET
 		sts potFlag, r16
 		rcall StartFindPotent
 		rjmp return_Timer0PotTimer
+
+	switchToFindCodeMode:
+		clr r16
+		out portc, r16
+		out portg, r16
+		ldi r16, FLAG_UNSET
+		sts potFlag, r16 ; turn off pot input
+		rcall StartFindCode
+		rjmp return_Timer0PotTimer
 		
 	return_Timer0PotTimer:
+		pop r16
+		pop temp2
+		pop temp1
+		ret
+
+Timer0KeypadTimer:
+	push temp1
+	push temp2
+	push r16
+
+	lds temp1, keypadHoldFlag
+	;out portc, temp1
+	cpi temp1, FLAG_SET
+	brne return_Timer0KeypadTimer
+
+	lds temp1, potTimer
+	lds temp2, potTimer+1
+	adiw temp2:temp1, 1
+	
+	sts potTimer, temp1
+	sts potTimer+1, temp2
+	;out portc, temp1
+	
+	ldi r16, high(SECOND_INTERVAL)
+	cpi temp1, low(SECOND_INTERVAL)
+	cpc temp2, r16
+	breq switchToRoundCompletionMode
+	rjmp return_Timer0KeypadTimer
+
+	switchToRoundCompletionMode:
+		clr r16
+		;out portc, r16
+		ldi r16, FLAG_UNSET
+		sts keypadHoldFlag, r16
+		sts keypadFlag, r16
+		
+	return_Timer0KeypadTimer:
 		pop r16
 		pop temp2
 		pop temp1

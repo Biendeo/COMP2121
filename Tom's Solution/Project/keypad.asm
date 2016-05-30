@@ -73,15 +73,22 @@ GetKeyPadInput:
 	push rowMask
 	push colMask
 
-	GetKeyPadInput_Start:
+	GetKeyPadInput_Start_Initial:
 		ldi colMask, INIT_COL_MASK
 		clr col
+		rjmp GetKeyPadInput_ColLoop
+	GetKeyPadInput_Start_Repeated:
+		ldi colMask, INIT_COL_MASK
+		clr col
+		; col loop has run without detecting input
+		; unset keypad hold flag
+		ldi temp1, FLAG_UNSET
+		sts keypadHoldFlag, temp1 
 	GetKeyPadInput_ColLoop:
 		lds temp1, keypadFlag
-		cpi temp1, FLAG_SET
-		brne GetKeyPadInput_Return
+		cpi temp1, FLAG_SET ; is keypad enabled?
 		cpi col, 4
-		breq GetKeyPadInput_Start
+		breq GetKeyPadInput_Start_Repeated
 		sts KEYPAD_OUT, colMask
 		ldi temp1, 0xFF
 	GetKeyPadInput_Delay:

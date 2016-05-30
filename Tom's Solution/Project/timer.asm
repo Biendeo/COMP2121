@@ -47,15 +47,25 @@ Timer0Interrupt:
 		sts timer0Counter+1, temp2
 
 	testPotTimer:
+		; if mode == ResetPot or FindPot
 		lds r16, currentMode
 		cpi r16, MODE_RESETPOTENT
-		brne return_Timer0Interrupt
+		breq GotoPotTimerHandler
+		cpi r16, MODE_FINDPOTENT
+		breq GotoPotTimerHandler
+		; else: skip
+		rjmp testKeyPadTimer
 	
-	call Timer0PotTimer
+	GotoPotTimerHandler:
+		rcall Timer0PotTimer
 
-	storePotTimer:
-		sts potTimer, temp1
-		sts potTimer+1, temp2
+	testKeyPadTimer:
+		lds r16, currentMode
+		cpi r16, MODE_FINDCODE
+		breq gotoKeyPadTimerHandler
+		rjmp return_Timer0Interrupt
+	gotoKeyPadTimerHandler:
+		rcall Timer0KeypadTimer
 
 	return_Timer0Interrupt:
 		pop r16

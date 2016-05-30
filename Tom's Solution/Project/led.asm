@@ -7,13 +7,16 @@
 .equ LED_OUT = PORTC
 .equ LED_DDR = DDRC
 .equ LED_IN = PINC
+.equ LEDH_DDR = DDRG
+.equ LEDH_OUT = PORTG
 
 .def temp1 = r16
 
 SetupLED:
 	SER TEMP1
 	out LED_DDR, temp1
-	;out LED_OUT, temp1
+	ldi temp1, 0b00000011
+	out LEDH_DDR, temp1
 	ret
 
 .undef temp1

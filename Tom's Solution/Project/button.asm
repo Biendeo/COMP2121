@@ -40,7 +40,7 @@ PushLeftButton:
 	lds temp1, currentMode
 	cpi temp1, MODE_TITLESCREEN
 	brne return_PushLeftButton
-	call StartTitleWait
+	rcall StartTitleWait
 
 	return_PushLeftButton:
 		pop temp1
