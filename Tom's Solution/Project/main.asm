@@ -196,10 +196,10 @@ StartTitleWait:
 		do_lcd_data ' '
 		do_lcd_data 'i'
 		do_lcd_data 'n'
-		do_lcd data ' '
+		do_lcd_data ' '
 
 		push temp1
-		mv temp1, r16
+		mov temp1, r16
 		rcall displayIAsASCII
 		pop temp1
 
@@ -208,8 +208,11 @@ StartTitleWait:
 	StartTitleWait_WaitLoop:
 		lds r16, titleWaitCountdown
 		cp r16, r17
-		brne StartTitleWait_DisplayPart
+		brne StartTitleWait_JumpBackToDisplayPart
 		rjmp StartTitleWait_WaitLoop
+
+	StartTitleWait_JumpBackToDisplayPart:
+		jmp StartTitleWait_DisplayPart
 
 	StartTitleWait_Exit:
 		pop r16
