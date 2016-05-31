@@ -29,6 +29,7 @@
 .equ KEYPAD_D = 0b00110011
 
 ; TODO: Rename these to much more useful things.
+.equ PORTL_DIR = 0xF0
 .equ INIT_COL_MASK = 0xEF
 .equ INIT_ROW_MASK = 0x01
 .equ ROW_MASK = 0x0F
@@ -76,8 +77,8 @@ GetKeyPadInput:
 	GetKeyPadInput_Start_Repeated:
 		ser col
 		out portc, col
-		;ldi col, FLAG_UNSET
-		;sts keypadHoldFlag, col
+		ldi col, FLAG_UNSET
+		sts keypadHoldFlag, col
 		ldi colMask, INIT_COL_MASK
 		clr col
 		

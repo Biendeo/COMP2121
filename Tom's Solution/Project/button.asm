@@ -27,6 +27,16 @@ SetupButtons:
 	sei
 	ret
 
+disablePB1:
+	push temp1
+
+	in temp1, EIMSK
+	ori temp1, (0<<INT1)
+	out EIMSK, temp1
+
+	pop temp1
+	ret
+
 PushLeftButton:
 	push temp1
 	; handle debouncing

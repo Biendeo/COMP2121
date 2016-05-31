@@ -69,8 +69,7 @@ RESET:
 	sts TCCR3A, temp1 ; TCCRNA handles copmare output mode
 
 	ldi temp1, 	1<<DDE2 ;pe2 is oc3b
-	ser temp1
-	out DDRE, temp1	; lab says pin pe2 but manual says pe4
+	out DDRE, temp1	; lab says pin pe2
 
 	; configure duty cycle
 	ser temp1
