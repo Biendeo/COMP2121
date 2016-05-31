@@ -18,6 +18,8 @@ Timer0Interrupt:
 	push temp1
 	push temp2
 	push r16
+	ldi r16, 0b01010101
+	out portc, r16
 	testPB1:
 		lds temp1, PB1dbFlag
 		cpi temp1, flagSet
@@ -65,8 +67,7 @@ Timer0Interrupt:
 		breq gotoKeyPadTimerHandler
 		rjmp return_Timer0Interrupt
 	gotoKeyPadTimerHandler:
-		out portc, r16
-		;rcall Timer0KeypadTimer
+		rcall Timer0KeypadTimer
 
 	return_Timer0Interrupt:
 		pop r16

@@ -29,15 +29,10 @@
 .equ KEYPAD_D = 0b00110011
 
 ; TODO: Rename these to much more useful things.
-.equ PORTL_DIR = 0xF0
 .equ INIT_COL_MASK = 0xEF
 .equ INIT_ROW_MASK = 0x01
 .equ ROW_MASK = 0x0F
 
-.dseg
-
-
-.cseg
 
 .def temp1 = r16
 .def temp2 = r17
@@ -55,6 +50,7 @@ SetupKeyPad:
 
 	ldi temp1, FLAG_UNSET
 	sts keypadFlag, temp1
+	sts keypadHoldFlag, temp1
 	ser temp1
 	; This is just the LED stuff from the slides.
 	; Use this to test that we've done this right, but remove it once we need
@@ -78,15 +74,23 @@ GetKeyPadInput:
 		clr col
 		rjmp GetKeyPadInput_ColLoop
 	GetKeyPadInput_Start_Repeated:
+		ser col
+		out portc, col
+		;ldi col, FLAG_UNSET
+		;sts keypadHoldFlag, col
 		ldi colMask, INIT_COL_MASK
 		clr col
+		
 		; col loop has run without detecting input
 		; unset keypad hold flag
-		;ldi temp1, FLAG_UNSET
-		;sts keypadHoldFlag, temp1 
 	GetKeyPadInput_ColLoop:
+		; if keypad is not set
+		; return
 		lds temp1, keypadFlag
-		cpi temp1, FLAG_SET ; is keypad enabled?
+		cpi temp1, FLAG_SET
+		brne GetKeyPadInput_Return
+		; if we've polled all cols and no input
+		; start again and unset keypadHoldFalg
 		cpi col, 4
 		breq GetKeyPadInput_Start_Repeated
 		sts KEYPAD_OUT, colMask
@@ -125,6 +129,8 @@ GetKeyPadInput:
 		add temp1, row
 
 	GetKeyPadInput_Return:
+		clr col
+		out portc, col
 		pop colMask
 		pop rowMask
 		pop col

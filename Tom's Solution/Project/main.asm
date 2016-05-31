@@ -388,7 +388,9 @@ StartFindPotent:
 ; Called from Timer0PotTimer
 StartFindCode:
 	push temp1
+	push temp2
 	push r16
+	push r17
 	ldi r16, MODE_FINDCODE
 	sts currentMode, r16
 
@@ -453,44 +455,51 @@ StartFindCode:
 	
 	ldi r16, MODE_FINDCODE
 	sts currentMode, r16
+	clr r16
+	out portc, r16
+	out portg, r16
 
 	ldi temp1, FLAG_SET
 	sts keypadFlag, temp1 ; turn on keypad
-	;lds temp1, currentRandomCode
-	;FindCode_loop:
+
+	lds temp1, currentRandomCode ; get the random code
+	FindCode_loop:
 		rcall GetKeyPadInput
-	;	; if code is correct: break to find code correct
-	;	cp r16, temp1
-	;	breq FindCode_correct
+		; if code is correct: break to find code correct
+		;cp r16, temp1
+		;breq FindCode_correct
 		; code incorrect
-	;	ldi r16, FLAG_UNSET
-	;	sts keypadHoldFlag, r16
-	;	rjmp FindCode_loop
+		;out portc, r16
+		;ldi r16, FLAG_UNSET
+		;sts keypadHoldFlag, r16
+		rjmp FindCode_loop
 
-	;FindCode_correct:
-		; correct input detected, set keypad Hold flag
-		; if key is not held down, 
-		;	keypadHoldFlag will be unset in GetKeyPadInput
-		; if the flag is already set, continue
-		; if keypadFlag is unset, a second has passed:
-		;			return 
-	;	lds r16, keypadFlag
-	;	cpi r16, FLAG_UNSET
-	;	breq return_StartFindCode
+	FindCode_correct:
+		; Correct Input Detected
+		; if the keypadHoldFlag is set: continue
+		; if keypadFlag is unset: return (second has passed)
+		
+		lds temp2, keypadFlag 
+		cpi temp2, FLAG_UNSET		; test keypadFlag
+		breq return_StartFindCode	; return if unset
 
-	;	lds r16, keypadHoldFlag
-	;	cpi r16, FLAG_SET
-	;	breq FindCode_loop
-		;	else: reset timer and set flag
-	;	clr r16
-	;	sts potTimer, r16
-	;	sts potTimer+1, r16 
-	;	ldi r16, FLAG_SET
-	;	sts keypadHoldFlag, r16
-	;	rjmp FindCode_loop
+		lds temp2, keypadHoldFlag	; test the hold flag
+		cpi r16, FLAG_SET			; continue if set
+		breq FindCode_loop
+		;	else: set keypadHoldFlag
+		;		: set keypadHold Timer (using pot timer since it's not used in this section)
+		clr temp2
+		sts potTimer, temp2	; clear the timer
+		sts potTimer+1, temp2	; clear the timer
+		ldi temp2, FLAG_SET
+		sts keypadHoldFlag, temp2 ; set the keypadHoldFlag
+		out portc, temp2 ; DEBUG
+		rjmp FindCode_loop ; jump back to keypad loop
 
-	return_StartFindCode:
+	return_StartFindCode: ; returns back to calling function (pot timer)
+		push r17
 	   pop r16
+	   pop temp2
 	   pop temp1
 	   ret
 
@@ -554,14 +563,16 @@ GenerateNewRandomCodeDigit:
 	push r16
 	push r17
 	push r18
-	call CreateRandomValue
-	lds r16, currentRandomValue
-	ldi r17, 10
-	rcall Divide
-	sts currentRandomCode, r18
+	;call CreateRandomValue
+	;lds r16, currentRandomValue
+	;ldi r17, 10
+	;rcall Divide
+	;sts currentRandomCode, r18
+	ldi r16, KEYPAD_1
+	sts currentRandomCode, r16
 	pop r18
 	pop r17
-	pop r16.
+	pop r16
 	ret
 
 .def argument = r16
@@ -665,9 +676,9 @@ Modulus:
 .undef modulo
 .undef return
 
-; Stops the program.
-; This only ever needs to be called on screens waiting for a push button.
-
+; Polls the keypad and changes the difficulty based on the alphabetic key pressed.
+; To enable polling the keypad set keypadFlag to FLAG_SET. To break this loop externally,
+; set keypadFlag to FLAG_UNSET
 PollForDifficulty:
 	push r16
 	push temp1
@@ -895,9 +906,10 @@ Timer0PotTimer:
 		rjmp return_Timer0PotTimer
 
 	switchToFindCodeMode:
-		clr r16
-		out portc, r16
-		out portg, r16
+		; clear the leds after find pot mode
+		;clr r16
+		;out portc, r16
+		;out portg, r16
 		ldi r16, FLAG_UNSET
 		sts potFlag, r16 ; turn off pot input
 		rcall StartFindCode
@@ -913,20 +925,23 @@ Timer0KeypadTimer:
 	push temp1
 	push temp2
 	push r16
-
+	; if keypadHoldFlag is set: execute
+	; else: return
 	lds temp1, keypadHoldFlag
-	;out portc, temp1
 	cpi temp1, FLAG_SET
 	brne return_Timer0KeypadTimer
 
+	; increment timer
 	lds temp1, potTimer
 	lds temp2, potTimer+1
 	adiw temp2:temp1, 1
 	
+	; store timer
 	sts potTimer, temp1
 	sts potTimer+1, temp2
-	;out portc, temp1
 	
+	; if a second has passed: switch to round completion mode
+	; else: return 
 	ldi r16, high(SECOND_INTERVAL)
 	cpi temp1, low(SECOND_INTERVAL)
 	cpc temp2, r16
@@ -937,6 +952,10 @@ Timer0KeypadTimer:
 		ldi r16, FLAG_UNSET
 		sts keypadHoldFlag, r16
 		sts keypadFlag, r16
+		ldi r16, 0b01010101
+		out portc, r16
+		debug_loop:
+			rjmp debug_loop
 		
 	return_Timer0KeypadTimer:
 		pop r16
