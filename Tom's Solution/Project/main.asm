@@ -24,6 +24,8 @@
 	jmp PushLeftButton
 .org OVF0addr ; DEBOUNCING
 	jmp Timer0Interrupt 
+.org OVF2addr
+	jmp Timer2Interrupt
 .org ADCCaddr
 	jmp ADCCint
 
@@ -40,6 +42,8 @@ currentMode: .byte 1
 .equ MODE_GAMEWIN = 6
 .equ MODE_GAMELOSE = 7
 
+.equ seconds = 266666
+
 difficultyLevel: .byte 1
 
 .equ DIFFICULTY_EASY = 0
@@ -48,6 +52,9 @@ difficultyLevel: .byte 1
 .equ DIFFICULTY_REALLYHARD = 3
 
 currentStage: .byte 1
+
+counter: .byte 2
+pattern: .byte 1
 
 .equ FLAG_SET = 1
 .equ FLAG_UNSET = 0
@@ -62,6 +69,9 @@ currentRandomCode: .byte 1
 ; used as game timer and countdown timer
 timer0Counter: .byte 2
 timer0Seconds: .byte 2
+
+; timer 2
+timer2Counter: .byte 2
 
 ; DEBOUNCING PB
 PB0dbFlag: .byte 1
@@ -103,6 +113,7 @@ Reset:
 	out SPL, r16
 
 	rcall SetupTimer0
+	rcall SetupTimer2
 	rcall SetupLCD ; This somehow takes 750ms to do. Maybe investigate.
 	rcall SetupLED
 	rcall SetupStrobe
@@ -122,6 +133,9 @@ SetupMainVariables:
 
 	ldi r16, DIFFICULTY_EASY
 	sts difficultyLevel, r16
+
+	ser temp1
+	sts pattern, temp1
 
 	ldi r16, 0
 	sts currentStage, r16
@@ -538,26 +552,164 @@ FindCodeKeypadLoop:
 	; correct key is found, jump to change mode
 	
 	return_FindCodeKeypadLoop:
+		ldi temp1, FLAG_UNSET
+		sts keypadFlag, temp1
+		sts keypadHoldFlag, temp1
 		pop r16
 		pop temp2
 		pop temp1
 		ret
+
+; Starts the enter code sequence
+; Jumped to from Fork_NewRound_Entercode
+; This is not a 'function' nor is Fork_NewRound_Entercode,
+; so no need to push variables as this is basically the bottom of the stack
+.def count = r20
+.def correct = r21
+.def curr = r22
+StartEnterCodeScreen:
+
+	do_lcd_command LCD_CLEARDISPLAY
+	do_lcd_data 'E'
+	do_lcd_data 'n'
+	do_lcd_data 't'
+	do_lcd_data 'e'
+	do_lcd_data 'r'
+	do_lcd_data ' '
+	do_lcd_data 'C'
+	do_lcd_data 'o'
+	do_lcd_data 'd'
+	do_lcd_data 'e'
+	do_lcd_command LCD_SECONDLINE
+
+EnterCodePollKeypad:
+	ldi temp1, FLAG_SET
+	sts keypadFlag, temp1 ; turn on keypad
+	sts keypadHoldFlag, temp1
+
+	; TODO: 
+	debug_loop:
+		rcall GetKeypadInput
+		lds temp1, keypadHoldFlag
+		cpi temp1, FLAG_SET
+		breq debug_loop
+	;ldi temp1, FLAG_UNSET		; unset keypad hold flag
+	;sts keypadHoldFlag, temp1
+
+	
+
+
+	clr correct ; correct = false
+	clr count ; temp1 = 0
+	EnterCode_load:
+			cpi count, 0
+			brne EnterCode_load_second
+			lds curr, randomCode1
+			rjmp EnterCode_loop
+		EnterCode_load_second:
+			cpi count, 1
+			brne EnterCode_load_third
+			lds curr, randomCode2
+			rjmp EnterCode_loop
+		EnterCode_load_third:
+			cpi count, 2
+			brne EnterCode_loop_end
+			lds curr, randomCode3
+	EnterCode_loop:
+		rcall GetKeyPadInput
+		; if keypadHold on:
+		;			loop again, 
+		;			wait for new input from keypad (keypad hold unset)
+		out portc, r16
+		lds temp1, keypadHoldFlag
+		cpi temp1, FLAG_SET
+		breq EnterCode_loop
+		; else new keypad input: 
+		;		set keypad hold flag
+		ldi temp1, FLAG_SET
+		sts keypadHoldFlag, temp1
+
+		do_lcd_data '*'
+		
+		; cmp curr input
+		cp r16, curr
+		breq EnterCode_loop_correct
+
+		EnterCode_loop_again:
+			inc count
+			rjmp EnterCode_load
+
+	EnterCode_loop_correct:
+		ldi correct, 1 ; correct = true
+		rjmp EnterCode_loop_again
+
+	EnterCode_loop_end:
+		cpi correct, 1
+		breq StartGameWinScreen
+		rjmp TimeoutScreen
+		rjmp EnterCode_loop_end
+
+StartGameWinScreen:
+	push temp1
+
+	rcall DisableAllFlags
+
+	do_lcd_command LCD_CLEARDISPLAY
+	do_lcd_data 'G'
+	do_lcd_data 'a'
+	do_lcd_data 'm'
+	do_lcd_data 'e'
+	do_lcd_data ' '
+	do_lcd_data 'c'
+	do_lcd_data 'o'
+	do_lcd_data 'm'
+	do_lcd_data 'p'
+	do_lcd_data 'l'
+	do_lcd_data 'e'
+	do_lcd_data 't'
+	do_lcd_data 'e'
+	do_lcd_command LCD_SECONDLINE
+	do_lcd_data 'Y'
+	do_lcd_data 'o'
+	do_lcd_data 'u'
+	do_lcd_data ' '
+	do_lcd_data 'W'
+	do_lcd_data 'i'
+	do_lcd_data 'n'
+	do_lcd_data '!'
+	
+	clr temp1
+	out portc, temp1
+	out portg, temp1
+
+	ldi temp1, MODE_GAMEWIN
+	sts currentMode, temp1
+
+	ldi temp1, FLAG_SET
+	sts keypadFlag, temp1
+	rcall GetKeypadInput
+	rjmp Reset
+		
 
 ; Starts a new round or ends the game.
 ; If currentStage == 3: goes to StartGameOver
 ; If currentStage <= 3: goes to newound
 ; Note: This is not a function to save memory on the stack
 ; No need to push registers as 
-; Called from Halt_changeToRoundEndMode (which isn't a function either)
-StartNewRoundOrGameOver:
+; Called from Halt_changeToRoundEndMode (which is basically the bottom of the stack)
+Fork_NewRound_EnterCode:
 	lds temp1, currentStage
 	cpi temp1, 3
-	brlt StartNewRoundOrGameOver_nR
-	; Game Over
+	brlt Fork_NewRound_EnterCode_nR
+	rjmp StartEnterCodeScreen
 
-	StartNewRoundOrGameOver_nR:
+	Fork_NewRound_EnterCode_nR:
 		rcall InitialStartResetPotent
 		rjmp Halt
+
+.undef count
+.undef correct
+.undef curr
 		
 ; Loads the timeout Screen
 ; Disables all flags
@@ -619,8 +771,8 @@ GenerateNewRandomCodeDigit:
 	;lds r16, currentRandomValue
 	;ldi r17, 10
 	;rcall Divide
-	;sts currentRandomCode, r18
 	ldi r16, KEYPAD_1
+	sts currentRandomCode, r16
 	sts currentRandomCode, r16
 	pop r18
 	pop r17
@@ -793,7 +945,7 @@ Halt_changeToFindCodeMode:
 	rjmp Halt
 
 Halt_changeToRoundEndMode:
-	rjmp StartNewRoundOrGameOver
+	rjmp Fork_NewRound_EnterCode
 
 Halt_changeToTimeoutMode:
 	rjmp TimeOutScreen

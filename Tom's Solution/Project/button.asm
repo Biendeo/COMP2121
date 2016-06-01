@@ -41,16 +41,20 @@ PushLeftButton:
 	push temp1
 	; handle debouncing
 	lds temp1, PB1dbFlag
-	cpi temp1, flagSet
+	cpi temp1, FLAG_SET
 	breq return_PushLeftButton
-	ldi temp1, flagSet		; set debounce flag
+	ldi temp1, FLAG_SET		; set debounce flag
 	sts PB1dbFlag, temp1
 	
 	; main logic
 	lds temp1, currentMode
 	cpi temp1, MODE_TITLESCREEN
+	breq gotoStartTitleWait
+	cpi temp1, MODE_GAMEWIN
 	brne return_PushLeftButton
-	rcall StartTitleWait
+	jmp Reset
+	gotoStartTitleWait:
+		rcall StartTitleWait
 
 	return_PushLeftButton:
 		pop temp1
@@ -60,9 +64,9 @@ PushRightButton:
 	push temp1
 	; handle debouncing
 	lds temp1, PB0dbFlag
-	cpi temp1, flagSet
+	cpi temp1, FLAG_SET
 	breq return_PushRightButton
-	ldi temp1, flagSet		; set debounce flag
+	ldi temp1, FLAG_SET		; set debounce flag
 	sts PB0dbFlag, temp1
 	
 	; main logic

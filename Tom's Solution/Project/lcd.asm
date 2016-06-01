@@ -8,15 +8,15 @@
 .macro do_lcd_command
 	push r16
 	ldi r16, @0
-	call lcd_command
-	call lcd_wait
+	rcall lcd_command
+	rcall lcd_wait
 	pop r16
 .endmacro
 .macro do_lcd_data
 	push r16
 	ldi r16, @0
-	call lcd_data
-	call lcd_wait
+	rcall lcd_data
+	rcall lcd_wait
 	pop r16
 .endmacro
 .macro do_lcd_data_reg
