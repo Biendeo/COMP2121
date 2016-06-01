@@ -4,9 +4,9 @@
 .ifndef STROBE_ASM
 .equ STROBE_ASM = 1
 
-.equ STROBE_OUT = PORTE
-.equ STROBE_DDR = DDRE
-.equ STROBE_PIN = DDE3
+.equ STROBE_OUT = PORTA
+.equ STROBE_DDR = DDRA
+.equ STROBE_PIN = PORTA1
 
 .def temp1 = r24
 
@@ -14,8 +14,9 @@
 SetupStrobe:
 	push temp1
 
-	ldi temp1, STROBE_PIN
-	out DDRE, temp1
+	in temp1, STROBE_DDR
+	andi temp1, (1<<STROBE_PIN)
+	out STROBE_DDR, temp1
 
 	pop temp1
 	ret
@@ -23,7 +24,7 @@ SetupStrobe:
 StrobeOn:
 	push temp1
 	ldi temp1, (1<<STROBE_PIN)
-	out porte, temp1
+	out STROBE_OUT, temp1
 	
 
 	pop temp1
@@ -32,11 +33,29 @@ StrobeOn:
 StrobeOff:
 	push temp1
 
-	ldi temp1,  (0<<DDE2)
-	out porte, temp1
+	ldi temp1,  (0<<STROBE_PIN)
+	out STROBE_OUT, temp1
 
 	pop temp1
 	ret
+
+ToggleStrobe:
+	push temp1
+
+	sbic STROBE_OUT, STROBE_PIN
+	rjmp gotoStrobeOn
+	; strobe off
+	rcall StrobeOff
+	rjmp ToggleStrobe_return
+
+	gotoStrobeOn:
+		rcall StrobeOn
+
+	ToggleStrobe_return:
+		pop temp1
+		ret
+		
+		
 
 .undef temp1
 

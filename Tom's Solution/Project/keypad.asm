@@ -37,8 +37,8 @@
 
 .def temp1 = r16
 .def temp2 = r17
-.def row = r18
-.def col = r19
+.def row = r30
+.def col = r31
 .def rowMask = r20
 .def colMask = r21
 
@@ -65,8 +65,6 @@ SetupKeyPad:
 ; Returns the key pressed into r16.
 GetKeyPadInput:
 	push temp2
-	push row
-	push col
 	push rowMask
 	push colMask
 
@@ -134,8 +132,6 @@ GetKeyPadInput:
 		out portc, col
 		pop colMask
 		pop rowMask
-		pop col
-		pop row
 		pop temp2
 		ret
 

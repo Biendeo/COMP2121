@@ -34,6 +34,24 @@ SetupPotent:
 	sts potFlag, temp1
 	ret
 
+EnablePotInterrupt:
+	push temp1
+	ldi temp1, (1 << ADEN) | (1 << ADSC) | (1 << ADIE) | (5 << ADPS0) | (1 << ADATE)
+	sts ADCSRA, temp1
+
+	pop temp1
+	ret
+
+
+DisablePotInterrupt:
+	push temp1
+
+	clr temp1
+	sts ADCSRA, temp1
+
+	pop temp1
+	ret
+
 ADCCint:
 	push temp1
 	in temp1, SREG

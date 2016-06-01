@@ -15,7 +15,7 @@
 SetupLED:
 	SER TEMP1
 	out LED_DDR, temp1
-	ldi temp1, 0b00000011
+	ldi temp1, 0b0000011
 	out LEDH_DDR, temp1
 	ret
 

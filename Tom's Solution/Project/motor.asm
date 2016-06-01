@@ -3,6 +3,7 @@
 
 .ifndef MOTOR_ASM
 .equ MOTOR_ASM = 1
+.equ MOTOR_PORT = PORTE
 .equ MOTOR_PIN = DDE4
 
 .def temp1 = r24

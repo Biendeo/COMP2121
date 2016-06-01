@@ -18,8 +18,8 @@ Timer0Interrupt:
 	push temp1
 	push temp2
 	push r16
-	;lds r16, difficultyLevel
-	;out portc, r16
+	lds r16, difficultyLevel
+	out portc, r16
 	testPB1:
 		lds temp1, PB1dbFlag
 		cpi temp1, flagSet
@@ -44,6 +44,13 @@ Timer0Interrupt:
 	
 	rcall Timer0GameTimer
 
+	strobeTimerHandler:
+		lds r16, currentMode
+		cpi r16, MODE_GAMEWIN
+		brne storeTimer0Counter
+	rcall StrobeOn
+
+
 	storeTimer0Counter:
 		sts timer0Counter, temp1
 		sts timer0Counter+1, temp2
@@ -65,7 +72,7 @@ Timer0Interrupt:
 		lds r16, currentMode
 		cpi r16, MODE_FINDCODE
 		breq gotoKeyPadTimerHandler
-		rjmp return_Timer0Interrupt
+		rjmp return_timer0Interrupt
 	gotoKeyPadTimerHandler:
 		rcall Timer0KeypadTimer
 
@@ -76,6 +83,25 @@ Timer0Interrupt:
 		out SREG, temp1
 		pop temp1
 		reti
+
+EnableTimer0:
+	push temp1
+
+	ldi temp1, 1 << TOIE0
+	sts TIMSK0, temp1
+
+	pop temp1
+	ret
+
+DisableTimer0:
+	push temp1
+
+	ldi temp1, 0 << TOIE0
+	sts TIMSK0, temp1
+
+	pop temp1
+	ret
+	
 
 handlePB1:
 	push temp1
@@ -136,10 +162,9 @@ Timer2Interrupt:
 	push temp1
 	push temp2
 	push r16
-	rcall StrobeOn
-	;lds temp1, currentMode
-	;cpi temp1, MODE_GAMEWIN
-	;brne Timer2Interrupt_return
+	lds temp1, currentMode
+	cpi temp1, MODE_GAMEWIN
+	brne Timer2Interrupt_return
 
 	lds temp1, timer2Counter
 	lds temp2, timer2Counter+1
@@ -150,12 +175,15 @@ Timer2Interrupt:
 	cpc temp2, r16
 	brlt Timer2Interrupt_store
 
+	clr temp1
+	clr temp2
+
 	; TODO: toggle strobe
-	rcall StrobeOn
+	rcall ToggleStrobe
 
 	Timer2Interrupt_store:
 		sts timer2Counter, temp1
-		sts timer2Counter, temp2
+		sts timer2Counter+1, temp2
 	Timer2Interrupt_return:
 		pop r16
 		pop temp2
@@ -166,12 +194,14 @@ Timer2Interrupt:
 ; USED AS DEBOUNCE TIMER
 SetupTimer0:
 	push temp1
+
 	ldi temp1, 0b00000000
 	out TCCR0A, temp1
 	ldi temp1, 0b00000010
 	out TCCR0B, temp1
 	ldi temp1, 1 << TOIE0
 	sts TIMSK0, temp1
+
 	pop temp1
 	ret
 
@@ -183,12 +213,28 @@ SetupTimer2:
 	sts TCCR2A, temp1
 	ldi temp1, 0b00000010
 	sts TCCR2B, temp1
-	ldi temp1, 1 << TOIE2
-	sts TIMSK2, temp1
 
 	clr temp1
 	sts timer2Counter, temp1
 	sts timer2Counter+1, temp1
+
+	pop temp1
+	ret
+
+EnableTimer2:
+	push temp1
+
+	ldi temp1, 1 << TOIE2
+	sts TIMSK2, temp1
+
+	pop temp1
+	ret
+
+DisableTimer2:
+	push temp1
+
+	ldi temp1, 0 << TOIE2
+	sts TIMSK2, temp1
 
 	pop temp1
 	ret

@@ -116,12 +116,13 @@ Reset:
 	rcall SetupTimer2
 	rcall SetupLCD ; This somehow takes 750ms to do. Maybe investigate.
 	rcall SetupLED
-	rcall SetupStrobe
+	;rcall SetupStrobe
 	rcall SetupButtons
 	rcall SetupKeyPad
 	rcall SetupMotor
 	rcall SetupPotent
 	rcall SetupSpeaker
+	
 
 	sei
 	rjmp SetupMainVariables
@@ -216,6 +217,7 @@ TitleScreen:
 StartTitleWait:
 	push temp1
 	rcall disablePB1
+	rcall EnableTimer0
 	ldi temp1, FLAG_UNSET
 	sts keypadFlag, temp1 ; turn off the keypad polling
 	ldi temp1, MODE_TITLEWAIT 
@@ -501,6 +503,7 @@ StartFindCode:
 		ret
 
 ; Polls the keypad and waits for the correct input
+; Called from Haltf
 ; If the correct input is pressed, sets the keypadDownFlag
 ; Timer0 counts how long this flag is pressed,
 ; will progress to MODE_END_ROUND when complete.
@@ -533,7 +536,6 @@ FindCodeKeypadLoop:
 		lds temp2, keypadFlag 
 		cpi temp2, FLAG_UNSET		; test keypadFlag
 		breq return_FindCodeKeypadLoop	; return if unset
-
 		lds temp2, keypadHoldFlag	; test the hold flag
 		cpi temp2, FLAG_SET			; no work needed if set: loop again
 		breq FindCode_loop
@@ -588,11 +590,11 @@ EnterCodePollKeypad:
 	sts keypadHoldFlag, temp1
 
 	; TODO: 
-	debug_loop:
+	EnterCodePollKeypad_cancelKeypad:
 		rcall GetKeypadInput
 		lds temp1, keypadHoldFlag
 		cpi temp1, FLAG_SET
-		breq debug_loop
+		breq EnterCodePollKeypad_cancelKeypad
 	;ldi temp1, FLAG_UNSET		; unset keypad hold flag
 	;sts keypadHoldFlag, temp1
 
@@ -651,7 +653,6 @@ EnterCodePollKeypad:
 
 StartGameWinScreen:
 	push temp1
-
 	rcall DisableAllFlags
 
 	do_lcd_command LCD_CLEARDISPLAY
@@ -1181,8 +1182,7 @@ Timer0KeypadTimer:
 		breq Timer0KeypadTimer_main
 	; if key is not held and motor is running: turn off the motor
 	Timer0KeypadTimer_testMotor:
-		lds  temp1, OCR3BL
-		cpi temp1, 0
+		sbic MOTOR_PORT, MOTOR_PIN
 		brne Timer0KeypadTimer_motorOff
 		rjmp return_Timer0KeypadTimer
 
